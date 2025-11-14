@@ -1,0 +1,37 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2025-11-14T15:12:55.162-05:00  INFO 20212 --- [           main] com.storyapp.StoryAppApplication         : Starting StoryAppApplication using Java 25.0.1 with PID 20212 (C:\Users\hp\Desktop\StoryWritingProject\Backend\target\backend-0.0.1-SNAPSHOT.jar started by hp in C:\Users\hp\Desktop\StoryWritingProject\Backend)
+2025-11-14T15:12:55.168-05:00  INFO 20212 --- [           main] com.storyapp.StoryAppApplication         : No active profile set, falling back to 1 default profile: "default"
+2025-11-14T15:12:59.246-05:00  INFO 20212 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-14T15:12:59.651-05:00  INFO 20212 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 374 ms. Found 3 JPA repository interfaces.
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.apache.tomcat.jni.Library in an unnamed module (jar:nested:/C:/Users/hp/Desktop/StoryWritingProject/Backend/target/backend-0.0.1-SNAPSHOT.jar/!BOOT-INF/lib/tomcat-embed-core-10.1.16.jar!/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2025-11-14T15:13:02.671-05:00  INFO 20212 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-11-14T15:13:02.710-05:00  INFO 20212 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-11-14T15:13:02.711-05:00  INFO 20212 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-11-14T15:13:02.828-05:00  INFO 20212 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-11-14T15:13:02.830-05:00  INFO 20212 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 7292 ms
+2025-11-14T15:13:04.427-05:00  INFO 20212 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-14T15:13:04.859-05:00  INFO 20212 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.3.1.Final
+2025-11-14T15:13:05.094-05:00  INFO 20212 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-11-14T15:13:06.976-05:00  INFO 20212 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-14T15:13:07.385-05:00  INFO 20212 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-11-14T15:13:09.479-05:00  INFO 20212 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@40faff12
+2025-11-14T15:13:09.508-05:00  INFO 20212 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-11-14T15:13:13.204-05:00  INFO 20212 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-14T15:13:13.337-05:00  INFO 20212 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-14T15:13:15.385-05:00  WARN 20212 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-14T15:13:15.951-05:00  INFO 20212 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@40da1644, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5980e29f, org.springframework.security.web.context.SecurityContextHolderFilter@1f207142, org.springframework.security.web.header.HeaderWriterFilter@113e6e06, org.springframework.security.web.authentication.logout.LogoutFilter@50eae15a, com.storyapp.security.JwtAuthenticationFilter@2cdd156b, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@723f8990, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@3bdc8975, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@487bc2fe, org.springframework.security.web.session.SessionManagementFilter@69c263f8, org.springframework.security.web.access.ExceptionTranslationFilter@1d7f0cd0, org.springframework.security.web.access.intercept.AuthorizationFilter@5ff8d76f]
+2025-11-14T15:13:16.942-05:00  INFO 20212 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-11-14T15:13:16.983-05:00  INFO 20212 --- [           main] com.storyapp.StoryAppApplication         : Started StoryAppApplication in 24.199 seconds (process running for 28.467)
+^C
