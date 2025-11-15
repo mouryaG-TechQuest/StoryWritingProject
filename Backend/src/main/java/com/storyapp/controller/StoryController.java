@@ -46,12 +46,12 @@ public class StoryController {
     }
 
     @GetMapping("/{id}")
-    public StoryResponse getStory(@PathVariable Long id) {
+    public StoryResponse getStory(@PathVariable("id") Long id) {
         return storyService.getStoryById(id);
     }
 
     @PutMapping("/{id}")
-    public StoryResponse updateStory(@PathVariable Long id, @RequestBody StoryRequest request, Authentication authentication) {
+    public StoryResponse updateStory(@PathVariable("id") Long id, @RequestBody StoryRequest request, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) throw new UnauthorizedException("Unauthorized");
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElseThrow(() -> new UnauthorizedException("User not found"));
@@ -59,7 +59,7 @@ public class StoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteStory(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deleteStory(@PathVariable("id") Long id, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) throw new UnauthorizedException("Unauthorized");
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElseThrow(() -> new UnauthorizedException("User not found"));

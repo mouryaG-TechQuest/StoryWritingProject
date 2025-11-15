@@ -10,6 +10,7 @@ com\storyapp\controller\StoryController.class
 com\storyapp\exception\ResourceNotFoundException.class
 com\storyapp\exception\GlobalExceptionHandler.class
 com\storyapp\exception\ErrorResponse.class
+com\storyapp\config\CorsConfig.class
 com\storyapp\dto\CharacterResponse.class
 com\storyapp\dto\StoryResponse.class
 com\storyapp\model\Character.class

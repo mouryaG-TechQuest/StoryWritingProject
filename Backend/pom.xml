@@ -93,11 +93,10 @@
       <version>2.1.0</version>
     </dependency>
 
-    <!-- H2 for tests -->
+    <!-- H2 for dev profile (in-memory) -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -110,6 +109,7 @@
         <configuration>
           <source>21</source>
           <target>21</target>
+          <parameters>true</parameters>
         </configuration>
       </plugin>
       <plugin>

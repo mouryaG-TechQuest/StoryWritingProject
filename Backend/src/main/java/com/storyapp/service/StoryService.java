@@ -66,8 +66,14 @@ public class StoryService {
         story.setTitle(request.getTitle());
         story.setContent(request.getContent());
 
-        // Remove old characters and add new ones
+        // Delete old characters from database
+        List<Character> oldCharacters = story.getCharacters();
+        for (Character oldChar : oldCharacters) {
+            characterRepository.delete(oldChar);
+        }
         story.getCharacters().clear();
+
+        // Add new characters
         if (request.getCharacters() != null) {
             for (CharacterRequest cr : request.getCharacters()) {
                 Character c = new Character(cr.getName(), cr.getDescription(), story);

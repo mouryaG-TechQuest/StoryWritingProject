@@ -14,6 +14,7 @@ C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\contr
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\security\SecurityConfig.java
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\repository\CharacterRepository.java
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\security\JwtAuthenticationFilter.java
+C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\config\CorsConfig.java
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\dto\CharacterResponse.java
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\exception\ResourceNotFoundException.java
 C:\Users\hp\Desktop\StoryWritingProject\Backend\src\main\java\com\storyapp\exception\ErrorResponse.java
