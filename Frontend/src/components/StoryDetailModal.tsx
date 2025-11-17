@@ -1,5 +1,5 @@
 import { X, Edit } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SceneTimelineViewer from './SceneTimelineViewer';
 
 interface Character {
@@ -8,6 +8,7 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
+  imageUrls?: string[];  // Changed from imageUrl to imageUrls array
 }
 
 interface TimelineEntry {
@@ -47,6 +48,52 @@ export default function StoryDetailModal({
   showAsPage = false
 }: StoryDetailModalProps) {
   const [viewMode, setViewMode] = useState<'timeline' | 'full'>('timeline');
+  const startTimeRef = useRef<number>(Date.now());
+  const viewTrackedRef = useRef<boolean>(false);
+  
+  // Track view count when modal opens (only once)
+  useEffect(() => {
+    const trackView = async () => {
+      if (viewTrackedRef.current) return; // Already tracked
+      viewTrackedRef.current = true;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        await fetch(`/api/stories/${story.id}/view`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (err) {
+        console.error('Failed to track view:', err);
+      }
+    };
+    
+    trackView();
+    startTimeRef.current = Date.now();
+    
+    // Track watch time when modal closes
+    return () => {
+      const watchTime = Math.floor((Date.now() - startTimeRef.current) / 1000); // in seconds
+      if (watchTime > 0) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch(`/api/stories/${story.id}/watch-time`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ watchTime })
+          }).catch(err => console.error('Failed to track watch time:', err));
+        }
+      }
+    };
+  }, [story.id]);
   
   let timeline: TimelineEntry[] = [];
   try {
@@ -161,11 +208,15 @@ export default function StoryDetailModal({
                   </h3>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {story.imageUrls.map((url, idx) => (
-                      <div key={idx} className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition">
+                      <div key={idx} className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition bg-gray-100">
                         <img
                           src={url.startsWith('http') ? url : `http://localhost:8080${url}`}
                           alt={`Story image ${idx + 1}`}
                           className="w-full h-48 object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23e5e7eb" width="400" height="300"/%3E%3Ctext fill="%239ca3af" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16"%3EImage not available%3C/text%3E%3C/svg%3E';
+                          }}
                         />
                       </div>
                     ))}
@@ -216,13 +267,17 @@ export default function StoryDetailModal({
                             
                             {/* Timeline Entry Images */}
                             {entry.imageUrls && entry.imageUrls.length > 0 && (
-                              <div className="grid gap-2 sm:grid-cols-3 mt-3 mb-2">
+                              <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 mt-3 mb-2">
                                 {entry.imageUrls.map((url: string, imgIdx: number) => (
-                                  <div key={imgIdx} className="rounded overflow-hidden shadow-md">
+                                  <div key={imgIdx} className="rounded overflow-hidden shadow-md bg-gray-100 hover:shadow-lg transition">
                                     <img
                                       src={url.startsWith('http') ? url : `http://localhost:8080${url}`}
                                       alt={`${entry.event} - Image ${imgIdx + 1}`}
                                       className="w-full h-32 object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150"%3E%3Crect fill="%23e5e7eb" width="200" height="150"/%3E%3Ctext fill="%239ca3af" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12"%3EImage Error%3C/text%3E%3C/svg%3E';
+                                      }}
                                     />
                                   </div>
                                 ))}

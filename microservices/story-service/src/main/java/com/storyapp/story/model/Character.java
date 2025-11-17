@@ -1,6 +1,8 @@
 package com.storyapp.story.model;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "characters")
@@ -21,8 +23,10 @@ public class Character {
     @Column(name = "actor_name")
     private String actorName;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "character_images", joinColumns = @JoinColumn(name = "character_id"))
     @Column(name = "image_url")
-    private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "story_id")
@@ -84,11 +88,11 @@ public class Character {
         this.actorName = actorName;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public List<String> getImageUrls() {
+        return imageUrls;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }

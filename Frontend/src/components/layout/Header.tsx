@@ -14,47 +14,49 @@ const Header = ({ user, onLogout, onNavigate }: HeaderProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <nav className="bg-white shadow-md p-3 sm:p-4">
-      <div className="w-full px-2 sm:px-4 lg:px-6 flex justify-between items-center">
-        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => onNavigate('home')}>
-          <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
-          <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Story Hub</h1>
+    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg shadow-lg border-b border-purple-100 py-2 sm:py-3 px-3 sm:px-6">
+      <div className="max-w-[1920px] mx-auto flex justify-between items-center">
+        <div className="flex items-center space-x-2 cursor-pointer group" onClick={() => onNavigate('home')}>
+          <div className="p-1.5 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          </div>
+          <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Story Hub</h1>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button
             onClick={() => onNavigate('home')}
-            className="hidden sm:flex items-center text-gray-700 hover:text-purple-600 transition"
+            className="hidden sm:flex items-center justify-center w-8 h-8 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 transform hover:scale-110"
             title="Home"
           >
-            <Home className="w-5 h-5" />
+            <Home className="w-4 h-4" />
           </button>
           <button
             onClick={() => onNavigate('favorites')}
-            className="flex items-center text-gray-700 hover:text-purple-600 transition"
+            className="flex items-center justify-center w-8 h-8 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 transform hover:scale-110"
             title="Favorites"
           >
-            <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Heart className="w-4 h-4" />
           </button>
           <button
             onClick={() => onNavigate('cart')}
-            className="flex items-center text-gray-700 hover:text-purple-600 transition"
+            className="flex items-center justify-center w-8 h-8 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 transform hover:scale-110"
             title="Cart"
           >
-            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ShoppingCart className="w-4 h-4" />
           </button>
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+              className="flex items-center space-x-1.5 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-all duration-200 transform hover:scale-105"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md ring-2 ring-purple-200">
                 {user.username.charAt(0).toUpperCase()}
               </div>
-              <span className="hidden sm:inline font-medium text-gray-700">{user.username}</span>
+              <span className="hidden sm:inline font-semibold text-gray-700 text-sm">{user.username}</span>
             </button>
             
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+              <div className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-100 py-2 z-50 animate-fade-in-down">
                 <button
                   onClick={() => { setShowDropdown(false); onNavigate('profile'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"

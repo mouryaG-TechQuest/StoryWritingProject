@@ -4,7 +4,9 @@ import com.storyapp.story.dto.StoryRequest;
 import com.storyapp.story.dto.StoryResponse;
 import com.storyapp.story.dto.CommentRequest;
 import com.storyapp.story.dto.CommentResponse;
+import com.storyapp.story.dto.GenreResponse;
 import com.storyapp.story.service.StoryService;
+import com.storyapp.story.service.ImageStorageService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,12 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/stories")
@@ -26,9 +25,11 @@ import java.util.UUID;
 public class StoryController {
 
     private final StoryService storyService;
+    private final ImageStorageService imageStorageService;
 
-    public StoryController(StoryService storyService) {
+    public StoryController(StoryService storyService, ImageStorageService imageStorageService) {
         this.storyService = storyService;
+        this.imageStorageService = imageStorageService;
     }
 
     @PostMapping
@@ -115,24 +116,52 @@ public class StoryController {
     }
 
     @PostMapping(value = "/upload-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<String>> uploadImages(@RequestParam("files") MultipartFile[] files) {
-        List<String> urls = new ArrayList<>();
+    public ResponseEntity<?> uploadImages(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "type", defaultValue = "story") String type) {
         try {
-            Path uploadDir = Paths.get("uploads/stories");
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
+            List<String> urls;
+            
+            // Route to appropriate storage based on type
+            switch (type.toLowerCase()) {
+                case "character":
+                    if (files.length != 1) {
+                        return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Character upload requires exactly one file"));
+                    }
+                    String characterUrl = imageStorageService.storeCharacterImage(files[0]);
+                    return ResponseEntity.ok(List.of(characterUrl));
+                    
+                case "scene":
+                    urls = imageStorageService.storeSceneImages(files);
+                    break;
+                    
+                case "story":
+                default:
+                    urls = imageStorageService.storeStoryImages(files);
+                    break;
             }
             
-            for (MultipartFile file : files) {
-                if (file.isEmpty()) continue;
-                String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-                Path filePath = uploadDir.resolve(filename);
-                Files.copy(file.getInputStream(), filePath);
-                urls.add("/uploads/stories/" + filename);
-            }
             return ResponseEntity.ok(urls);
+            
         } catch (IOException e) {
-            return ResponseEntity.status(500).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
+    @DeleteMapping("/delete-image")
+    public ResponseEntity<?> deleteImage(@RequestParam("url") String imageUrl) {
+        try {
+            boolean deleted = imageStorageService.deleteImage(imageUrl);
+            if (deleted) {
+                return ResponseEntity.ok(Map.of("message", "Image deleted successfully"));
+            } else {
+                return ResponseEntity.status(404).body(Map.of("error", "Image not found"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -187,5 +216,32 @@ public class StoryController {
         String username = auth.getName();
         storyService.deleteCharacter(id, username);
         return ResponseEntity.noContent().build();
+    }
+
+    // Genre endpoints
+    @GetMapping("/genres")
+    public List<GenreResponse> getAllGenres() {
+        return storyService.getAllGenres();
+    }
+    
+    // View tracking endpoints
+    @PostMapping("/{id}/view")
+    public ResponseEntity<Void> trackView(@PathVariable Long id, Authentication auth) {
+        String username = auth != null ? auth.getName() : null;
+        storyService.incrementViewCount(id, username);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/{id}/watch-time")
+    public ResponseEntity<Void> trackWatchTime(
+            @PathVariable Long id, 
+            @RequestBody Map<String, Integer> request,
+            Authentication auth) {
+        String username = auth != null ? auth.getName() : null;
+        Integer watchTime = request.get("watchTime");
+        if (watchTime != null && watchTime > 0) {
+            storyService.trackWatchTime(id, username, watchTime);
+        }
+        return ResponseEntity.ok().build();
     }
 }

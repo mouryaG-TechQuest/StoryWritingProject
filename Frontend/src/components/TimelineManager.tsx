@@ -1177,14 +1177,22 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                       {uploadingImages === entry.id && <span className="text-xs text-gray-600">Uploading...</span>}
                     </div>
                     {entry.imageUrls.length > 0 && (
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {entry.imageUrls.map((url, idx) => (
-                          <div key={idx} className="relative">
-                            <img src={`http://localhost:8080${url}`} alt="" className="w-full h-20 object-cover rounded border" />
+                          <div key={idx} className="relative group">
+                            <img 
+                              src={url.startsWith('http') ? url : `http://localhost:8080${url}`} 
+                              alt={`Scene image ${idx + 1}`} 
+                              className="w-full h-16 sm:h-20 object-cover rounded border border-gray-300 group-hover:border-purple-400 transition" 
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10"%3EError%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
                             <button
                               type="button"
                               onClick={() => removeImage(entry.id, idx)}
-                              className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700"
+                              className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition"
                             >
                               <X className="w-3 h-3" />
                             </button>

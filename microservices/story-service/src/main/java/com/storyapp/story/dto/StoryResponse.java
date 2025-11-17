@@ -16,9 +16,13 @@ public class StoryResponse {
     private List<CharacterResponse> characters;
     private Boolean isPublished;
     private Integer likeCount;
+    private Integer viewCount;
     private Boolean isLikedByCurrentUser;
     private Boolean isFavoritedByCurrentUser;
     private Integer commentCount;
+    private List<GenreResponse> genres;
+    private String storyNumber;
+    private Long totalWatchTime; // in seconds
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,10 +48,18 @@ public class StoryResponse {
     public void setIsPublished(Boolean isPublished) { this.isPublished = isPublished; }
     public Integer getLikeCount() { return likeCount; }
     public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+    public Integer getViewCount() { return viewCount; }
+    public void setViewCount(Integer viewCount) { this.viewCount = viewCount; }
     public Boolean getIsLikedByCurrentUser() { return isLikedByCurrentUser; }
     public void setIsLikedByCurrentUser(Boolean isLikedByCurrentUser) { this.isLikedByCurrentUser = isLikedByCurrentUser; }
     public Boolean getIsFavoritedByCurrentUser() { return isFavoritedByCurrentUser; }
     public void setIsFavoritedByCurrentUser(Boolean isFavoritedByCurrentUser) { this.isFavoritedByCurrentUser = isFavoritedByCurrentUser; }
     public Integer getCommentCount() { return commentCount; }
     public void setCommentCount(Integer commentCount) { this.commentCount = commentCount; }
+    public List<GenreResponse> getGenres() { return genres; }
+    public void setGenres(List<GenreResponse> genres) { this.genres = genres; }
+    public String getStoryNumber() { return storyNumber; }
+    public void setStoryNumber(String storyNumber) { this.storyNumber = storyNumber; }
+    public Long getTotalWatchTime() { return totalWatchTime; }
+    public void setTotalWatchTime(Long totalWatchTime) { this.totalWatchTime = totalWatchTime; }
 }

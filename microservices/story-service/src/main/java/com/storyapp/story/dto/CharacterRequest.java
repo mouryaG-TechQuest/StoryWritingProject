@@ -1,11 +1,14 @@
 package com.storyapp.story.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CharacterRequest {
     private String name;
     private String description;
     private String role;
     private String actorName;
-    private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -15,6 +18,6 @@ public class CharacterRequest {
     public void setRole(String role) { this.role = role; }
     public String getActorName() { return actorName; }
     public void setActorName(String actorName) { this.actorName = actorName; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
 }

@@ -48,6 +48,18 @@ public class Story {
     @Column(name = "like_count", nullable = false)
     private Integer likeCount = 0;
 
+    @Column(name = "view_count", nullable = false)
+    private Integer viewCount = 0;
+
+    @Column(name = "story_number", unique = true, length = 20)
+    private String storyNumber;
+
+    @Column(name = "total_watch_time", nullable = false)
+    private Long totalWatchTime = 0L; // in seconds
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryView> storyViews = new ArrayList<>();
+
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
 
@@ -56,6 +68,9 @@ public class Story {
 
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryGenre> storyGenres = new ArrayList<>();
 
     public Story() {}
 
@@ -157,6 +172,14 @@ public class Story {
         this.likeCount = likeCount;
     }
 
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
     public List<Like> getLikes() {
         return likes;
     }
@@ -179,5 +202,37 @@ public class Story {
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;
+    }
+
+    public List<StoryGenre> getStoryGenres() {
+        return storyGenres;
+    }
+
+    public void setStoryGenres(List<StoryGenre> storyGenres) {
+        this.storyGenres = storyGenres;
+    }
+
+    public String getStoryNumber() {
+        return storyNumber;
+    }
+
+    public void setStoryNumber(String storyNumber) {
+        this.storyNumber = storyNumber;
+    }
+
+    public Long getTotalWatchTime() {
+        return totalWatchTime;
+    }
+
+    public void setTotalWatchTime(Long totalWatchTime) {
+        this.totalWatchTime = totalWatchTime;
+    }
+
+    public List<StoryView> getStoryViews() {
+        return storyViews;
+    }
+
+    public void setStoryViews(List<StoryView> storyViews) {
+        this.storyViews = storyViews;
     }
 }

@@ -23,12 +23,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.disable())
+            .cors(cors -> {}) // Enable CORS with default configuration
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()  // Public access to all uploaded images (PNG, JPEG, JPG, GIF, WEBP)
                 .requestMatchers(HttpMethod.GET, "/api/stories").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/stories/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()  // Allow viewing individual stories
+                .requestMatchers(HttpMethod.POST, "/api/stories/*/view").permitAll()  // Allow view tracking
+                .requestMatchers(HttpMethod.POST, "/api/stories/*/watch-time").permitAll()  // Allow watch time tracking
+                .requestMatchers(HttpMethod.POST, "/api/stories/upload-images").authenticated()  // Require auth for uploads
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

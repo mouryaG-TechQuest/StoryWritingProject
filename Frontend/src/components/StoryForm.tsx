@@ -9,7 +9,13 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
-  imageUrl?: string;
+  imageUrls?: string[];  // Changed from imageUrl to imageUrls array
+}
+
+interface Genre {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 interface FormData {
@@ -19,6 +25,7 @@ interface FormData {
   timelineJson: string;
   imageUrls: string[];
   characters: Character[];
+  genreIds?: number[];
   isPublished?: boolean;
   writers?: string;
 }
@@ -41,6 +48,7 @@ interface StoryFormProps {
   isEditing: boolean;
   storyId?: string;
   onCharacterCountChange?: () => void;
+  genres: Genre[];
 }
 
 const StoryForm = ({
@@ -51,7 +59,8 @@ const StoryForm = ({
   loading,
   isEditing,
   storyId,
-  onCharacterCountChange
+  onCharacterCountChange,
+  genres
 }: StoryFormProps) => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'characters' | 'timeline' | 'preview'>('details');
@@ -169,7 +178,7 @@ const StoryForm = ({
     const newIndex = formData.characters.length;
     setFormData({
       ...formData,
-      characters: [...formData.characters, { name: '', description: '', role: '', actorName: '', imageUrl: '' }]
+      characters: [...formData.characters, { name: '', description: '', role: '', actorName: '', imageUrls: [] }]
     });
     // Collapse all existing characters and expand only the new one
     setExpandedCharacters(new Set([newIndex]));
@@ -315,9 +324,11 @@ const StoryForm = ({
     if (!e.target.files || e.target.files.length === 0) return;
     setUploadingCharacterImage(characterIndex);
 
-    const file = e.target.files[0];
     const formDataUpload = new FormData();
-    formDataUpload.append('files', file);
+    Array.from(e.target.files).forEach(file => {
+      formDataUpload.append('files', file);
+    });
+    formDataUpload.append('type', 'character');
 
     try {
       const token = localStorage.getItem('token');
@@ -330,7 +341,10 @@ const StoryForm = ({
       if (response.ok) {
         const urls: string[] = await response.json();
         if (urls.length > 0) {
-          updateCharacter(characterIndex, 'imageUrl', urls[0]);
+          const newCharacters = [...formData.characters];
+          const currentImages = newCharacters[characterIndex].imageUrls || [];
+          newCharacters[characterIndex].imageUrls = [...currentImages, ...urls];
+          setFormData({ ...formData, characters: newCharacters });
         }
       }
     } catch (err) {
@@ -340,8 +354,11 @@ const StoryForm = ({
     }
   };
 
-  const removeCharacterImage = (characterIndex: number) => {
-    updateCharacter(characterIndex, 'imageUrl', '');
+  const removeCharacterImage = (characterIndex: number, imageIndex: number) => {
+    const newCharacters = [...formData.characters];
+    const currentImages = newCharacters[characterIndex].imageUrls || [];
+    newCharacters[characterIndex].imageUrls = currentImages.filter((_, i) => i !== imageIndex);
+    setFormData({ ...formData, characters: newCharacters });
   };
 
   const saveCharacterToGlobal = async (characterIndex: number) => {
@@ -640,24 +657,97 @@ const StoryForm = ({
               </div>
 
               {formData.imageUrls.length > 0 && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
                   {formData.imageUrls.map((url, idx) => (
                     <div key={idx} className="relative group">
                       <img 
                         src={url.startsWith('http') ? url : `http://localhost:8080${url}`} 
-                        alt="" 
-                        className="w-full h-32 object-cover rounded-lg border-2 border-blue-200 group-hover:border-blue-400 transition" 
+                        alt={`Cover image ${idx + 1}`} 
+                        className="w-full h-24 sm:h-32 object-cover rounded-lg border-2 border-blue-200 group-hover:border-blue-400 transition" 
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14"%3EImage Error%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition shadow-lg"
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 sm:p-1.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition shadow-lg"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* Genres Section */}
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg">
+              <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+                <Filter className="w-5 h-5 mr-2" />
+                Story Genres * (Select at least one)
+              </h3>
+              
+              {genres.length === 0 ? (
+                <p className="text-blue-600 text-sm">Loading genres...</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {genres.map((genre) => {
+                    const isSelected = formData.genreIds?.includes(genre.id) || false;
+                    return (
+                      <label
+                        key={genre.id}
+                        className={`flex items-center space-x-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-700 text-white shadow-md'
+                            : 'bg-white border-blue-200 text-blue-900 hover:border-blue-400 hover:bg-blue-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const currentGenres = formData.genreIds || [];
+                            const newGenres = e.target.checked
+                              ? [...currentGenres, genre.id]
+                              : currentGenres.filter(id => id !== genre.id);
+                            setFormData({ ...formData, genreIds: newGenres });
+                          }}
+                          className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium">{genre.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {formData.genreIds && formData.genreIds.length > 0 && (
+                <div className="mt-3 flex items-center space-x-2">
+                  <span className="text-sm font-semibold text-blue-900">
+                    Selected ({formData.genreIds.length}):
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {formData.genreIds.map(genreId => {
+                      const genre = genres.find(g => g.id === genreId);
+                      return genre ? (
+                        <span
+                          key={genreId}
+                          className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold"
+                        >
+                          {genre.name}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {(!formData.genreIds || formData.genreIds.length === 0) && (
+                <p className="mt-2 text-red-600 text-sm font-medium">
+                  ⚠️ Please select at least one genre for your story
+                </p>
               )}
             </div>
           </div>
@@ -900,41 +990,53 @@ const StoryForm = ({
                           rows={3}
                         />
 
-                        {/* Character Image Upload */}
+                        {/* Character Images Upload - Support Multiple */}
                         <div className="space-y-2">
                           <label className="block text-xs sm:text-sm font-semibold text-purple-900">
-                            Character Image
+                            Character Images {char.imageUrls && char.imageUrls.length > 0 && `(${char.imageUrls.length})`}
                           </label>
-                          {char.imageUrl ? (
-                            <div className="relative inline-block">
-                              <img
-                                src={char.imageUrl.startsWith('http') ? char.imageUrl : `http://localhost:8080${char.imageUrl}`}
-                                alt={char.name}
-                                className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border-2 border-purple-300"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeCharacterImage(index)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
-                              >
-                                <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <label className="cursor-pointer bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 sm:px-4 py-2 rounded-lg flex items-center transition text-xs sm:text-sm">
-                                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                                {uploadingCharacterImage === index ? 'Uploading...' : 'Upload Image'}
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) => handleCharacterImageUpload(e, index)}
-                                  className="hidden"
-                                  disabled={uploadingCharacterImage === index}
-                                />
-                              </label>
+                          
+                          {/* Display existing images */}
+                          {char.imageUrls && char.imageUrls.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
+                              {char.imageUrls.map((imageUrl, imgIdx) => (
+                                <div key={imgIdx} className="relative group">
+                                  <img
+                                    src={imageUrl.startsWith('http') ? imageUrl : `http://localhost:8080${imageUrl}`}
+                                    alt={`${char.name || 'Character'} - Image ${imgIdx + 1}`}
+                                    className="w-full h-20 sm:h-24 object-cover rounded-lg border-2 border-purple-300 group-hover:border-purple-500 transition"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCharacterImage(index, imgIdx)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
                             </div>
                           )}
+                          
+                          {/* Upload button */}
+                          <div className="flex items-center">
+                            <label className="cursor-pointer bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 sm:px-4 py-2 rounded-lg flex items-center transition text-xs sm:text-sm">
+                              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                              {uploadingCharacterImage === index ? 'Uploading...' : (char.imageUrls && char.imageUrls.length > 0 ? 'Add More Images' : 'Upload Images')}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleCharacterImageUpload(e, index)}
+                                className="hidden"
+                                disabled={uploadingCharacterImage === index}
+                              />
+                            </label>
+                          </div>
                         </div>
 
                         {/* Add/Update Character Buttons */}
@@ -1591,19 +1693,23 @@ const StoryForm = ({
                                 : "mb-8 flex justify-center items-center"
                               }>
                                 <div className={writerMode
-                                  ? "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
+                                  ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2"
                                   : "grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl"
                                 }>
                                   {entry.imageUrls.map((url, imgIdx) => (
-                                    <div key={imgIdx} className="relative group">
+                                    <div key={imgIdx} className="relative group bg-gray-100 rounded-lg overflow-hidden">
                                       <img
-                                        src={`http://localhost:8080${url}`}
+                                        src={url.startsWith('http') ? url : `http://localhost:8080${url}`}
                                         alt={`Scene ${actualSceneNumber} - Image ${imgIdx + 1}`}
                                         className={writerMode
                                           ? "w-full h-16 sm:h-20 object-cover rounded border border-gray-300 group-hover:border-purple-500 transition cursor-pointer shadow-sm group-hover:shadow-md"
                                           : "w-full h-48 sm:h-64 object-cover rounded-lg border-2 border-amber-300 shadow-lg group-hover:shadow-2xl transition cursor-pointer"
                                         }
-                                        onClick={() => window.open(`http://localhost:8080${url}`, '_blank')}
+                                        onClick={() => window.open(url.startsWith('http') ? url : `http://localhost:8080${url}`, '_blank')}
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\"%3E%3Crect fill=\"%23e5e7eb\" width=\"200\" height=\"200\"/%3E%3Ctext fill=\"%239ca3af\" x=\"50%25\" y=\"50%25\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"14\"%3EImage Error%3C/text%3E%3C/svg%3E';
+                                        }}
                                       />
                                       {!writerMode && (
                                         <div className="text-center mt-2 text-sm italic text-gray-600">
@@ -1697,9 +1803,9 @@ const StoryForm = ({
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="submit"
-              disabled={loading || !formData.title.trim()}
+              disabled={loading || !formData.title.trim() || !formData.genreIds || formData.genreIds.length === 0}
               className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 sm:py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base sm:text-lg shadow-lg"
-              title={!formData.title.trim() ? 'Story title is required' : ''}
+              title={!formData.title.trim() ? 'Story title is required' : (!formData.genreIds || formData.genreIds.length === 0) ? 'Please select at least one genre' : ''}
             >
               {loading ? 'Saving...' : storyId ? '💾 Update Story' : '✨ Create Story'}
             </button>

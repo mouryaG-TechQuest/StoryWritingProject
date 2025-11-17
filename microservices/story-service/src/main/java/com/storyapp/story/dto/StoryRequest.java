@@ -11,6 +11,7 @@ public class StoryRequest {
     private List<String> imageUrls;
     private List<CharacterRequest> characters;
     private Boolean isPublished;
+    private List<Long> genreIds;
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -28,4 +29,6 @@ public class StoryRequest {
     public void setCharacters(List<CharacterRequest> characters) { this.characters = characters; }
     public Boolean getIsPublished() { return isPublished; }
     public void setIsPublished(Boolean isPublished) { this.isPublished = isPublished; }
+    public List<Long> getGenreIds() { return genreIds; }
+    public void setGenreIds(List<Long> genreIds) { this.genreIds = genreIds; }
 }

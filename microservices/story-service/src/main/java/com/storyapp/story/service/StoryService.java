@@ -6,6 +6,9 @@ import com.storyapp.story.model.StoryImage;
 import com.storyapp.story.model.Like;
 import com.storyapp.story.model.Favorite;
 import com.storyapp.story.model.Comment;
+import com.storyapp.story.model.Genre;
+import com.storyapp.story.model.StoryGenre;
+import com.storyapp.story.model.StoryView;
 import com.storyapp.story.exception.ResourceNotFoundException;
 import com.storyapp.story.exception.UnauthorizedException;
 import com.storyapp.story.model.Story;
@@ -14,9 +17,13 @@ import com.storyapp.story.repository.StoryRepository;
 import com.storyapp.story.repository.LikeRepository;
 import com.storyapp.story.repository.FavoriteRepository;
 import com.storyapp.story.repository.CommentRepository;
+import com.storyapp.story.repository.GenreRepository;
+import com.storyapp.story.repository.StoryGenreRepository;
+import com.storyapp.story.repository.StoryViewRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,15 +35,22 @@ public class StoryService {
     private final LikeRepository likeRepository;
     private final FavoriteRepository favoriteRepository;
     private final CommentRepository commentRepository;
+    private final GenreRepository genreRepository;
+    private final StoryGenreRepository storyGenreRepository;
+    private final StoryViewRepository storyViewRepository;
 
     public StoryService(StoryRepository storyRepository, CharacterRepository characterRepository, 
                         LikeRepository likeRepository, FavoriteRepository favoriteRepository,
-                        CommentRepository commentRepository) {
+                        CommentRepository commentRepository, GenreRepository genreRepository,
+                        StoryGenreRepository storyGenreRepository, StoryViewRepository storyViewRepository) {
         this.storyRepository = storyRepository;
         this.characterRepository = characterRepository;
         this.likeRepository = likeRepository;
         this.favoriteRepository = favoriteRepository;
         this.commentRepository = commentRepository;
+        this.genreRepository = genreRepository;
+        this.storyGenreRepository = storyGenreRepository;
+        this.storyViewRepository = storyViewRepository;
     }
 
     @Transactional
@@ -56,6 +70,10 @@ public class StoryService {
         story.setWriters(request.getWriters());
         story.setTimelineJson(request.getTimelineJson());
         story.setIsPublished(request.getIsPublished() != null ? request.getIsPublished() : false);
+        
+        // Generate unique story number
+        story.setStoryNumber(generateUniqueStoryNumber());
+        
         Story saved = storyRepository.save(story);
 
         if (request.getImageUrls() != null) {
@@ -70,15 +88,28 @@ public class StoryService {
                 Character c = new Character(cr.getName(), cr.getDescription(), saved);
                 c.setRole(cr.getRole());
                 c.setActorName(cr.getActorName());
-                c.setImageUrl(cr.getImageUrl());
+                c.setImageUrls(cr.getImageUrls());
                 characterRepository.save(c);
                 saved.getCharacters().add(c);
             }
         }
+
+        // Handle genres
+        if (request.getGenreIds() != null && !request.getGenreIds().isEmpty()) {
+            for (Long genreId : request.getGenreIds()) {
+                Genre genre = genreRepository.findById(genreId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genreId));
+                StoryGenre storyGenre = new StoryGenre(saved, genre);
+                storyGenreRepository.save(storyGenre);
+                saved.getStoryGenres().add(storyGenre);
+            }
+        }
+
         return convertToResponse(saved, authorUsername);
     }
 
     public List<StoryResponse> getAllStories() {
+        ensureAllStoriesHaveNumbers();
         return storyRepository.findAll().stream()
             .filter(Story::getIsPublished)
             .map(s -> convertToResponse(s, null))
@@ -86,6 +117,7 @@ public class StoryService {
     }
 
     public List<StoryResponse> getAllStoriesForUser(String username) {
+        ensureAllStoriesHaveNumbers();
         return storyRepository.findAll().stream()
             .filter(Story::getIsPublished)
             .map(s -> convertToResponse(s, username))
@@ -93,6 +125,7 @@ public class StoryService {
     }
 
     public List<StoryResponse> getUserStories(String username) {
+        ensureAllStoriesHaveNumbers();
         return storyRepository.findAllByAuthorUsername(username).stream()
             .map(s -> convertToResponse(s, username))
             .collect(Collectors.toList());
@@ -105,6 +138,11 @@ public class StoryService {
 
     public StoryResponse getStoryByIdForUser(Long id, String username) {
         Story story = storyRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Story not found"));
+        
+        // Increment view count
+        story.setViewCount(story.getViewCount() + 1);
+        storyRepository.save(story);
+        
         return convertToResponse(story, username);
     }
 
@@ -151,11 +189,24 @@ public class StoryService {
                 Character c = new Character(cr.getName(), cr.getDescription(), story);
                 c.setRole(cr.getRole());
                 c.setActorName(cr.getActorName());
-                c.setImageUrl(cr.getImageUrl());
+                c.setImageUrls(cr.getImageUrls());
                 characterRepository.save(c);
                 story.getCharacters().add(c);
             }
         }
+
+        // Update genres
+        story.getStoryGenres().clear();
+        if (request.getGenreIds() != null && !request.getGenreIds().isEmpty()) {
+            for (Long genreId : request.getGenreIds()) {
+                Genre genre = genreRepository.findById(genreId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Genre not found: " + genreId));
+                StoryGenre storyGenre = new StoryGenre(story, genre);
+                storyGenreRepository.save(storyGenre);
+                story.getStoryGenres().add(storyGenre);
+            }
+        }
+
         Story updated = storyRepository.save(story);
         return convertToResponse(updated, username);
     }
@@ -238,7 +289,10 @@ public class StoryService {
         resp.setCreatedAt(story.getCreatedAt());
         resp.setIsPublished(story.getIsPublished());
         resp.setLikeCount(story.getLikeCount());
+        resp.setViewCount(story.getViewCount());
         resp.setCommentCount((int) commentRepository.countByStory(story));
+        resp.setStoryNumber(story.getStoryNumber());
+        resp.setTotalWatchTime(story.getTotalWatchTime());
         
         if (currentUsername != null) {
             resp.setIsLikedByCurrentUser(likeRepository.existsByStoryAndUsername(story, currentUsername));
@@ -260,10 +314,21 @@ public class StoryService {
             cr.setDescription(c.getDescription());
             cr.setRole(c.getRole());
             cr.setActorName(c.getActorName());
-            cr.setImageUrl(c.getImageUrl());
+            cr.setImageUrls(c.getImageUrls());
             return cr;
         }).collect(Collectors.toList());
         resp.setCharacters(chars);
+
+        // Add genres
+        List<GenreResponse> genres = story.getStoryGenres().stream().map(sg -> {
+            GenreResponse gr = new GenreResponse();
+            gr.setId(sg.getGenre().getId());
+            gr.setName(sg.getGenre().getName());
+            gr.setDescription(sg.getGenre().getDescription());
+            return gr;
+        }).collect(Collectors.toList());
+        resp.setGenres(genres);
+
         return resp;
     }
 
@@ -308,7 +373,7 @@ public class StoryService {
         character.setDescription(request.getDescription());
         character.setRole(request.getRole());
         character.setActorName(request.getActorName());
-        character.setImageUrl(request.getImageUrl());
+        character.setImageUrls(request.getImageUrls());
         // Note: This creates a standalone character without a story association
         // It will be associated with a story when the story is created/updated
         Character saved = characterRepository.save(character);
@@ -324,7 +389,7 @@ public class StoryService {
         character.setDescription(request.getDescription());
         character.setRole(request.getRole());
         character.setActorName(request.getActorName());
-        character.setImageUrl(request.getImageUrl());
+        character.setImageUrls(request.getImageUrls());
         
         Character updated = characterRepository.save(character);
         return convertToCharacterResponse(updated);
@@ -360,7 +425,109 @@ public class StoryService {
         resp.setDescription(character.getDescription());
         resp.setRole(character.getRole());
         resp.setActorName(character.getActorName());
-        resp.setImageUrl(character.getImageUrl());
+        resp.setImageUrls(character.getImageUrls());
         return resp;
+    }
+
+    // Genre methods
+    public List<GenreResponse> getAllGenres() {
+        return genreRepository.findAll().stream()
+            .map(this::convertToGenreResponse)
+            .collect(Collectors.toList());
+    }
+
+    private GenreResponse convertToGenreResponse(Genre genre) {
+        GenreResponse resp = new GenreResponse();
+        resp.setId(genre.getId());
+        resp.setName(genre.getName());
+        resp.setDescription(genre.getDescription());
+        return resp;
+    }
+    
+    // View tracking methods
+    @Transactional
+    public void incrementViewCount(Long storyId, String username) {
+        Story story = storyRepository.findById(storyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Story not found with id: " + storyId));
+        
+        // Check if this user has already viewed this story
+        var existingView = storyViewRepository.findByStoryIdAndUsername(storyId, username);
+        
+        if (existingView.isEmpty()) {
+            // First time viewing - create new StoryView and increment story view count
+            StoryView storyView = new StoryView(story, username);
+            storyViewRepository.save(storyView);
+            
+            story.setViewCount((story.getViewCount() != null ? story.getViewCount() : 0) + 1);
+            storyRepository.save(story);
+        } else {
+            // User has viewed before - just update last viewed time but don't increment count
+            StoryView storyView = existingView.get();
+            storyView.setLastViewedAt(LocalDateTime.now());
+            storyView.setViewCount(storyView.getViewCount() + 1);
+            storyViewRepository.save(storyView);
+        }
+    }
+    
+    @Transactional
+    public void trackWatchTime(Long storyId, String username, Integer watchTime) {
+        Story story = storyRepository.findById(storyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Story not found with id: " + storyId));
+        
+        // Add to total watch time
+        Long currentWatchTime = story.getTotalWatchTime() != null ? story.getTotalWatchTime() : 0L;
+        story.setTotalWatchTime(currentWatchTime + watchTime);
+        storyRepository.save(story);
+        
+        System.out.println("User " + (username != null ? username : "anonymous") + 
+                         " watched story " + storyId + " for " + watchTime + " seconds. Total: " + story.getTotalWatchTime());
+    }
+    
+    /**
+     * Ensures all existing stories have story numbers.
+     * This is a migration helper that runs on-demand.
+     */
+    @Transactional
+    private void ensureAllStoriesHaveNumbers() {
+        List<Story> storiesWithoutNumbers = storyRepository.findAll().stream()
+            .filter(story -> story.getStoryNumber() == null || story.getStoryNumber().isEmpty())
+            .collect(Collectors.toList());
+        
+        if (!storiesWithoutNumbers.isEmpty()) {
+            System.out.println("Found " + storiesWithoutNumbers.size() + " stories without story numbers. Generating...");
+            for (Story story : storiesWithoutNumbers) {
+                story.setStoryNumber(generateUniqueStoryNumber());
+                storyRepository.save(story);
+            }
+            System.out.println("Story numbers generated successfully.");
+        }
+    }
+    
+    /**
+     * Generates a unique story number starting with 5 digits (10000-99999),
+     * then moving to 6 digits (100000-999999) when all 5-digit numbers are used, and so on.
+     */
+    private String generateUniqueStoryNumber() {
+        List<String> existingNumbers = storyRepository.findAllStoryNumbersOrderedDesc();
+        
+        if (existingNumbers.isEmpty()) {
+            return "10000"; // Start with first 5-digit number
+        }
+        
+        // Get the highest number
+        String highestNumber = existingNumbers.get(0);
+        int currentLength = highestNumber.length();
+        long currentValue = Long.parseLong(highestNumber);
+        
+        // Calculate max value for current length (e.g., 99999 for 5 digits)
+        long maxForCurrentLength = (long) Math.pow(10, currentLength) - 1;
+        
+        if (currentValue < maxForCurrentLength) {
+            // Still have room in current digit length
+            return String.valueOf(currentValue + 1);
+        } else {
+            // Move to next digit length (e.g., from 99999 to 100000)
+            return String.valueOf((long) Math.pow(10, currentLength));
+        }
     }
 }

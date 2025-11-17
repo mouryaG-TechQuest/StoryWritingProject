@@ -18,36 +18,46 @@ const StoryViewToggle = ({
   showForm
 }: StoryViewToggleProps) => {
   return (
-    <div className="flex justify-between items-center mb-6">
-      <div className="flex space-x-2">
+    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
+      <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-md p-1 flex space-x-1 border border-purple-100">
         <button
           onClick={() => onViewChange('all')}
-          className={`px-4 py-2 rounded-lg transition ${
+          className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-lg font-semibold transition-all duration-300 text-sm ${
             view === 'all'
-              ? 'bg-purple-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md transform scale-105'
+              : 'bg-transparent text-gray-700 hover:bg-purple-50'
           }`}
         >
-          All Stories ({allStoriesCount})
+          All Stories <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+            view === 'all' ? 'bg-white/20' : 'bg-purple-100 text-purple-700'
+          }`}>{allStoriesCount}</span>
         </button>
         <button
           onClick={() => onViewChange('my')}
-          className={`px-4 py-2 rounded-lg transition ${
+          className={`flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-lg font-semibold transition-all duration-300 text-sm ${
             view === 'my'
-              ? 'bg-purple-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md transform scale-105'
+              : 'bg-transparent text-gray-700 hover:bg-purple-50'
           }`}
         >
-          My Stories ({myStoriesCount})
+          My Stories <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+            view === 'my' ? 'bg-white/20' : 'bg-purple-100 text-purple-700'
+          }`}>{myStoriesCount}</span>
         </button>
       </div>
 
       <button
         onClick={onNewStory}
-        className="flex items-center bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
+        className={`flex items-center justify-center px-4 sm:px-5 py-2 rounded-lg font-semibold shadow-md transition-all duration-300 transform hover:scale-105 text-sm ${
+          showForm
+            ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white'
+            : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
+        }`}
       >
-        <Plus className="w-5 h-5 mr-2" />
-        {showForm ? 'Hide Form' : 'New Story'}
+        <Plus className={`w-4 h-4 mr-1.5 transition-transform duration-300 ${
+          showForm ? 'rotate-45' : 'rotate-0'
+        }`} />
+        <span>{showForm ? 'Hide' : 'New Story'}</span>
       </button>
     </div>
   );
