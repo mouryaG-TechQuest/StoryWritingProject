@@ -10,14 +10,14 @@ export const authService = {
     const res = await httpClient.post(`${AUTH_PREFIX}/login`, { username, password });
     // res expected to contain { token: '...' }
     if (res && res.token) {
-      localStorage.setItem('story_token', res.token);
+      localStorage.setItem('token', res.token);
     }
     return res;
   },
   logout: () => {
-    localStorage.removeItem('story_token');
+    localStorage.removeItem('token');
   },
-  getToken: () => localStorage.getItem('story_token'),
+  getToken: () => localStorage.getItem('token'),
 };
 
 export default authService;

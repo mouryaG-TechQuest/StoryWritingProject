@@ -70,6 +70,7 @@ const Auth = ({ onAuth }: AuthPageProps) => {
           <input
             type="text"
             placeholder="Username"
+            autoComplete="username"
             value={authForm.username}
             onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -80,6 +81,7 @@ const Auth = ({ onAuth }: AuthPageProps) => {
             <input
               type="email"
               placeholder="Email"
+              autoComplete="email"
               value={authForm.email}
               onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -90,6 +92,7 @@ const Auth = ({ onAuth }: AuthPageProps) => {
           <input
             type="password"
             placeholder="Password"
+            autoComplete={authForm.isLogin ? 'current-password' : 'new-password'}
             value={authForm.password}
             onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"

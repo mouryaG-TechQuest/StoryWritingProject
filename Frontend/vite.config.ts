@@ -9,6 +9,13 @@ export default defineConfig({
     strictPort: true,
     hmr: {
       overlay: true
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      }
     }
   }
 })
