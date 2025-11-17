@@ -534,17 +534,17 @@ const StoryForm = ({
   return (
     <div className="bg-white rounded-xl shadow-2xl mb-6 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white p-6">
-        <h2 className="text-3xl font-bold flex items-center">
-          <BookOpen className="w-8 h-8 mr-3" />
-          {isEditing ? 'Edit Your Story' : 'Create New Story'}
+      <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center">
+          <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mr-2 sm:mr-3" />
+          <span className="truncate">{isEditing ? 'Edit Your Story' : 'Create New Story'}</span>
         </h2>
-        <p className="text-purple-100 mt-2">Craft your narrative with characters, timeline, and rich media</p>
+        <p className="text-purple-100 mt-1 sm:mt-2 text-xs sm:text-sm lg:text-base">Craft your narrative with characters, timeline, and rich media</p>
       </div>
 
       {/* Tab Navigation */}
       <div className="bg-gray-50 border-b-2 border-gray-200">
-        <div className="flex overflow-x-auto">
+        <div className="flex overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -560,14 +560,15 @@ const StoryForm = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center space-x-2 px-6 py-4 font-semibold transition-all border-b-4 ${
+                className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-semibold transition-all border-b-4 whitespace-nowrap text-sm sm:text-base ${
                   isActive ? 'border-current' : 'border-transparent'
                 } ${colorClasses[tab.color]}`}
               >
-                <Icon className="w-5 h-5" />
-                <span>{tab.label}</span>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="hidden xs:inline">{tab.label}</span>
+                <span className="xs:hidden">{tab.label.split(' ')[0]}</span>
                 {tab.count !== undefined && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-bold ${
                     isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-700'
                   }`}>
                     {tab.count}
@@ -579,7 +580,7 @@ const StoryForm = ({
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="p-6">
+      <form onSubmit={onSubmit} className="p-3 sm:p-4 lg:p-6">
         {/* Story Details Tab */}
         {activeTab === 'details' && (
           <div className="space-y-4 animate-fadeIn">
@@ -664,27 +665,27 @@ const StoryForm = ({
 
         {/* Characters Tab */}
         {activeTab === 'characters' && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-purple-900 flex items-center">
-                <Users className="w-6 h-6 mr-2" />
+          <div className="space-y-3 sm:space-y-4 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3 sm:mb-4">
+              <h3 className="text-lg sm:text-xl font-bold text-purple-900 flex items-center">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                 Manage Characters ({formData.characters.length})
               </h3>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAllCharacters(!showAllCharacters)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center shadow-md transition"
+                  className="flex-1 sm:flex-initial bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center shadow-md transition text-xs sm:text-sm"
                 >
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   {showAllCharacters ? 'Hide' : 'View All'}
                 </button>
                 <button
                   type="button"
                   onClick={addCharacter}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center shadow-md transition"
+                  className="flex-1 sm:flex-initial bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center justify-center shadow-md transition text-xs sm:text-sm"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   Add Character
                 </button>
               </div>
@@ -692,24 +693,24 @@ const StoryForm = ({
 
             {/* Search and Filter Controls */}
             {formData.characters.length > 0 && (
-              <div className="flex items-center space-x-3 bg-purple-50 p-3 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-purple-50 p-2 sm:p-3 rounded-lg">
                 {/* Search Bar */}
                 <div className="flex-1 relative">
-                  <Search className="w-5 h-5 text-purple-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search by character or actor name..."
                     value={characterSearchQuery}
                     onChange={(e) => setCharacterSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                    className="w-full pl-8 sm:pl-10 pr-8 sm:pr-10 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition text-xs sm:text-sm"
                   />
                   {characterSearchQuery && (
                     <button
                       type="button"
                       onClick={() => setCharacterSearchQuery('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-400 hover:text-purple-600"
+                      className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-purple-400 hover:text-purple-600"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                   )}
                 </div>
@@ -719,14 +720,18 @@ const StoryForm = ({
                   <button
                     type="button"
                     onClick={() => setShowFilterMenu(!showFilterMenu)}
-                    className={`p-2 rounded-lg transition ${
+                    className={`w-full sm:w-auto p-2 rounded-lg transition flex items-center justify-center gap-2 ${
                       characterFilter !== 'none'
                         ? 'bg-purple-600 text-white shadow-md'
                         : 'bg-white text-purple-700 hover:bg-purple-100 border-2 border-purple-200'
                     }`}
                     title="Sort options"
                   >
-                    <Filter className="w-5 h-5" />
+                    <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-xs sm:text-sm font-medium sm:hidden">
+                      {characterFilter === 'character-az' ? 'Character A-Z' : 
+                       characterFilter === 'actor-az' ? 'Actor A-Z' : 'Sort'}
+                    </span>
                   </button>
 
                   {showFilterMenu && (
@@ -833,41 +838,41 @@ const StoryForm = ({
                   const isExpanded = expandedCharacters.has(index);
                   return (
                   <div key={index} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg shadow-sm hover:shadow-md transition">
-                    <div className="flex justify-between items-center p-3 cursor-pointer" onClick={() => toggleCharacter(index)}>
-                      <div className="flex items-center space-x-3 flex-1">
-                        <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                          Character {index + 1}
+                    <div className="flex justify-between items-center p-2 sm:p-3 cursor-pointer" onClick={() => toggleCharacter(index)}>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <span className="bg-purple-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
+                          #{index + 1}
                         </span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-purple-900">{char.name || 'Unnamed Character'}</span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-semibold text-purple-900 text-sm sm:text-base truncate">{char.name || 'Unnamed Character'}</span>
                           {char.actorName && (
-                            <span className="text-sm text-purple-600 flex items-center">
-                              <Users className="w-3 h-3 mr-1" />
-                              Actor: {char.actorName}
+                            <span className="text-xs sm:text-sm text-purple-600 flex items-center truncate">
+                              <Users className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">Actor: {char.actorName}</span>
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); removeCharacter(index); }}
                           className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1 rounded transition"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-purple-600" /> : <ChevronDown className="w-5 h-5 text-purple-600" />}
+                        {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />}
                       </div>
                     </div>
 
                     <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: isExpanded ? '1000px' : '0' }}>
-                      <div className="p-4 pt-0 space-y-3">
+                      <div className="p-3 sm:p-4 pt-0 space-y-2 sm:space-y-3">
                         <input
                           type="text"
                           placeholder="Character Name *"
                           value={char.name}
                           onChange={(e) => updateCharacter(index, 'name', e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-semibold"
+                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-semibold text-sm sm:text-base"
                           required
                         />
 
@@ -876,7 +881,7 @@ const StoryForm = ({
                           placeholder="Actor Name (who plays this role)"
                           value={char.actorName || ''}
                           onChange={(e) => updateCharacter(index, 'actorName', e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                         />
 
                         <input
@@ -884,20 +889,20 @@ const StoryForm = ({
                           placeholder="Role (e.g., Protagonist, Villain)"
                           value={char.role}
                           onChange={(e) => updateCharacter(index, 'role', e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                         />
 
                         <textarea
                           placeholder="Character Description"
                           value={char.description}
                           onChange={(e) => updateCharacter(index, 'description', e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                           rows={3}
                         />
 
                         {/* Character Image Upload */}
                         <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-purple-900">
+                          <label className="block text-xs sm:text-sm font-semibold text-purple-900">
                             Character Image
                           </label>
                           {char.imageUrl ? (
@@ -905,20 +910,20 @@ const StoryForm = ({
                               <img
                                 src={char.imageUrl.startsWith('http') ? char.imageUrl : `http://localhost:8080${char.imageUrl}`}
                                 alt={char.name}
-                                className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300"
+                                className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border-2 border-purple-300"
                               />
                               <button
                                 type="button"
                                 onClick={() => removeCharacterImage(index)}
                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
                             </div>
                           ) : (
                             <div className="flex items-center">
-                              <label className="cursor-pointer bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg flex items-center transition">
-                                <Upload className="w-4 h-4 mr-2" />
+                              <label className="cursor-pointer bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 sm:px-4 py-2 rounded-lg flex items-center transition text-xs sm:text-sm">
+                                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                                 {uploadingCharacterImage === index ? 'Uploading...' : 'Upload Image'}
                                 <input
                                   type="file"
@@ -933,14 +938,14 @@ const StoryForm = ({
                         </div>
 
                         {/* Add/Update Character Buttons */}
-                        <div className="flex items-center space-x-2 pt-2 border-t-2 border-purple-200">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t-2 border-purple-200">
                           {char.id ? (
                             <button
                               type="button"
                               onClick={() => updateCharacterToGlobal(index)}
-                              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center shadow-md transition"
+                              className="flex-1 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center shadow-md transition text-xs sm:text-sm"
                             >
-                              <Upload className="w-4 h-4 mr-2" />
+                              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                               Update Character
                             </button>
                           ) : (
@@ -1070,14 +1075,14 @@ const StoryForm = ({
           return (
             <div className="space-y-4 animate-fadeIn">
               {/* Preview Header with Mode Toggle */}
-              <div className="bg-orange-50 border-l-4 border-orange-600 p-4 rounded-r-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-orange-900 mb-2 flex items-center">
-                      <Eye className="w-5 h-5 mr-2" />
-                      Story Preview - {writerMode ? 'Writer Mode' : 'Reader Mode'}
+              <div className="bg-orange-50 border-l-4 border-orange-600 p-3 sm:p-4 rounded-r-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-orange-900 mb-1 sm:mb-2 flex items-center text-sm sm:text-base">
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                      <span className="truncate">Story Preview - {writerMode ? 'Writer' : 'Reader'}</span>
                     </h3>
-                    <p className="text-orange-700 text-sm">
+                    <p className="text-orange-700 text-xs sm:text-sm line-clamp-2">
                       {writerMode ? 'See characters, images, and highlighted names' : 'Clean reading experience with highlighted character names'}
                     </p>
                   </div>
@@ -1085,9 +1090,9 @@ const StoryForm = ({
                     type="button"
                     onClick={() => {
                       setWriterMode(!writerMode);
-                      setPreviewPage(0); // Reset to first page when switching modes
+                      setPreviewPage(0);
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center space-x-2 ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center space-x-2 whitespace-nowrap flex-shrink-0 ${
                       writerMode
                         ? 'bg-purple-600 text-white hover:bg-purple-700'
                         : 'bg-gray-600 text-white hover:bg-gray-700'
@@ -1109,60 +1114,64 @@ const StoryForm = ({
                 
                 {/* Writer Mode: Scenes Per Page Control */}
                 {writerMode && (
-                  <div className="flex items-center space-x-3 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                    <label className="text-sm font-semibold text-purple-900">Scenes per page:</label>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setCustomScenesPerPage(Math.max(MIN_SCENES_PER_PAGE, customScenesPerPage - 1))}
-                        className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="px-3 py-1 bg-white border border-purple-300 rounded font-bold text-purple-900 min-w-[40px] text-center">
-                        {Math.min(customScenesPerPage, getMaxScenesForScreen())}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCustomScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_WRITER, customScenesPerPage + 1))}
-                        className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
-                      >
-                        +
-                      </button>
-                      <span className="text-xs text-purple-600">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_WRITER, getMaxScenesForScreen())})</span>
+                  <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                    <label className="text-xs sm:text-sm font-semibold text-purple-900 whitespace-nowrap">Scenes per page:</label>
+                    <div className="flex items-center justify-between xs:justify-start gap-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setCustomScenesPerPage(Math.max(MIN_SCENES_PER_PAGE, customScenesPerPage - 1))}
+                          className="px-2 sm:px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
+                        >
+                          -
+                        </button>
+                        <span className="px-2 sm:px-3 py-1 bg-white border border-purple-300 rounded font-bold text-purple-900 min-w-[40px] text-center text-sm sm:text-base">
+                          {Math.min(customScenesPerPage, getMaxScenesForScreen())}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCustomScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_WRITER, customScenesPerPage + 1))}
+                          className="px-2 sm:px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-xs text-purple-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_WRITER, getMaxScenesForScreen())})</span>
                     </div>
                   </div>
                 )}
                 
                 {/* Reader Mode: Scenes Per Page Control */}
                 {!writerMode && (
-                  <div className="flex items-center space-x-3 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                    <label className="text-sm font-semibold text-gray-900">Scenes per page:</label>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReaderScenesPerPage(Math.max(MIN_SCENES_PER_PAGE, readerScenesPerPage - 1));
-                          setPreviewPage(0);
-                        }}
-                        className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="px-3 py-1 bg-white border border-gray-300 rounded font-bold text-gray-900 min-w-[40px] text-center">
-                        {Math.min(readerScenesPerPage, getMaxScenesForScreen())}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReaderScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_READER, readerScenesPerPage + 1));
-                          setPreviewPage(0);
-                        }}
-                        className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm font-bold"
-                      >
-                        +
-                      </button>
-                      <span className="text-xs text-gray-600">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_READER, getMaxScenesForScreen())})</span>
+                  <div className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <label className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Scenes per page:</label>
+                    <div className="flex items-center justify-between xs:justify-start gap-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReaderScenesPerPage(Math.max(MIN_SCENES_PER_PAGE, readerScenesPerPage - 1));
+                            setPreviewPage(0);
+                          }}
+                          className="px-2 sm:px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm font-bold"
+                        >
+                          -
+                        </button>
+                        <span className="px-2 sm:px-3 py-1 bg-white border border-gray-300 rounded font-bold text-gray-900 min-w-[40px] text-center text-sm sm:text-base">
+                          {Math.min(readerScenesPerPage, getMaxScenesForScreen())}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReaderScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_READER, readerScenesPerPage + 1));
+                            setPreviewPage(0);
+                          }}
+                          className="px-2 sm:px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_READER, getMaxScenesForScreen())})</span>
                     </div>
                   </div>
                 )}
@@ -1193,14 +1202,14 @@ const StoryForm = ({
 
               {/* Characters List - Only in Writer Mode - Compact with Pagination */}
               {writerMode && formData.characters.length > 0 && (
-                <div className="bg-purple-50 p-3 rounded-lg border border-purple-300">
+                <div className="bg-purple-50 p-2 sm:p-3 rounded-lg border border-purple-300">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-purple-900 flex items-center text-sm">
-                      <Users className="w-4 h-4 mr-1.5" />
+                    <h4 className="font-semibold text-purple-900 flex items-center text-xs sm:text-sm">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
                       Cast ({formData.characters.length})
                       {totalCastPages > 1 && (
-                        <span className="ml-2 text-xs text-purple-600">
-                          (Page {castPage + 1}/{totalCastPages})
+                        <span className="ml-1 sm:ml-2 text-xs text-purple-600">
+                          ({castPage + 1}/{totalCastPages})
                         </span>
                       )}
                     </h4>
@@ -1225,18 +1234,18 @@ const StoryForm = ({
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5">
                     {paginatedCast.map((char, idx) => {
                       const color = getCharacterColor(char.name, getAllCharacterNames(formData.characters));
                       return (
                         <span
                           key={idx}
-                          className={`${color.bg} ${color.text} px-2 py-1 rounded text-xs font-semibold border ${color.border} inline-flex flex-col`}
+                          className={`${color.bg} ${color.text} px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold border ${color.border} inline-flex flex-col`}
                           title={`${char.name}${char.actorName ? ` - ${char.actorName}` : ''}${char.role ? ` (${char.role})` : ''}`}
                         >
-                          <span className="font-bold">{char.name}</span>
+                          <span className="font-bold truncate max-w-[100px] sm:max-w-none">{char.name}</span>
                           {char.actorName && (
-                            <span className="text-xs opacity-80 font-normal">{char.actorName}</span>
+                            <span className="text-xs opacity-80 font-normal truncate max-w-[100px] sm:max-w-none">{char.actorName}</span>
                           )}
                         </span>
                       );
@@ -1247,12 +1256,12 @@ const StoryForm = ({
 
               {/* Unified Beautiful Search & Navigation */}
               {totalPreviewPages > 1 && (
-                <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 px-6 py-5 rounded-xl border-2 border-purple-200 shadow-lg">
-                  <div className="flex flex-col gap-4">
+                <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 rounded-xl border-2 border-purple-200 shadow-lg">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     {/* Search Bar with Autocomplete */}
                     <div className="relative">
-                      <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg border-2 border-purple-300 shadow-md hover:border-purple-400 transition-all">
-                        <Search className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                      <div className="flex items-center gap-2 bg-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 border-purple-300 shadow-md hover:border-purple-400 transition-all">
+                        <Search className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
                         <input
                           type="text"
                           placeholder="Search by page #, scene #, or scene title..."
@@ -1309,7 +1318,7 @@ const StoryForm = ({
                               }
                             }
                           }}
-                          className="flex-1 text-sm md:text-base focus:outline-none bg-transparent"
+                          className="flex-1 text-xs sm:text-sm md:text-base focus:outline-none bg-transparent placeholder:text-xs sm:placeholder:text-sm"
                         />
                         {sceneSearchQuery && (
                           <button
@@ -1429,54 +1438,56 @@ const StoryForm = ({
                     </div>
 
                     {/* Navigation Bar */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
                       {/* Page Info */}
-                      <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-purple-200 shadow-sm">
-                        <span className="text-sm font-semibold text-purple-900">
+                      <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white rounded-lg border border-purple-200 shadow-sm">
+                        <span className="text-xs sm:text-sm font-semibold text-purple-900 whitespace-nowrap">
                           Page {previewPage + 1} of {totalPreviewPages}
                         </span>
-                        <span className="text-xs text-purple-600">
+                        <span className="text-xs text-purple-600 whitespace-nowrap">
                           ({effectiveScenesPerPage} scene{effectiveScenesPerPage !== 1 ? 's' : ''})
                         </span>
                       </div>
 
                       {/* Navigation Buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <button
                           type="button"
                           onClick={() => setPreviewPage(0)}
                           disabled={previewPage === 0}
-                          className="p-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
+                          className="p-1.5 sm:p-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
                           title="First Page"
                         >
-                          <ChevronLeft className="w-5 h-5 text-purple-700" strokeWidth={3} />
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-purple-700" strokeWidth={3} />
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage(Math.max(0, previewPage - 1))}
                           disabled={previewPage === 0}
-                          className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all flex items-center gap-1 font-semibold text-purple-700 shadow-sm"
+                          className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all flex items-center gap-1 font-semibold text-purple-700 shadow-sm text-xs sm:text-sm"
                         >
-                          <ChevronLeft className="w-4 h-4" />
+                          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span className="hidden sm:inline">Previous</span>
+                          <span className="sm:hidden">Prev</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage(Math.min(totalPreviewPages - 1, previewPage + 1))}
                           disabled={previewPage === totalPreviewPages - 1}
-                          className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all flex items-center gap-1 font-semibold text-purple-700 shadow-sm"
+                          className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all flex items-center gap-1 font-semibold text-purple-700 shadow-sm text-xs sm:text-sm"
                         >
                           <span className="hidden sm:inline">Next</span>
-                          <ChevronRight className="w-4 h-4" />
+                          <span className="sm:hidden">Next</span>
+                          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage(totalPreviewPages - 1)}
                           disabled={previewPage === totalPreviewPages - 1}
-                          className="p-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
+                          className="p-1.5 sm:p-2 bg-white border-2 border-purple-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
                           title="Last Page"
                         >
-                          <ChevronRight className="w-5 h-5 text-purple-700" strokeWidth={3} />
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-purple-700" strokeWidth={3} />
                         </button>
                       </div>
                     </div>
@@ -1683,11 +1694,11 @@ const StoryForm = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="submit"
               disabled={loading || !formData.title.trim()}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg"
+              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 sm:py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base sm:text-lg shadow-lg"
               title={!formData.title.trim() ? 'Story title is required' : ''}
             >
               {loading ? 'Saving...' : storyId ? '💾 Update Story' : '✨ Create Story'}
@@ -1695,7 +1706,7 @@ const StoryForm = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-8 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold text-gray-700"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold text-gray-700"
             >
               Cancel
             </button>
