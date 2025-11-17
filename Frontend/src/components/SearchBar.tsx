@@ -12,8 +12,6 @@ interface SearchBarProps {
   onSearchChange: (query: string) => void;
   sortBy: string;
   onSortChange: (sortBy: string) => void;
-  itemsPerPage: number;
-  onItemsPerPageChange: (count: number) => void;
   totalResults: number;
   genres: Genre[];
   selectedGenres: number[];
@@ -25,17 +23,93 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSearchChange,
   sortBy,
   onSortChange,
-  itemsPerPage,
-  onItemsPerPageChange,
   totalResults,
   genres,
   selectedGenres,
   onGenresChange,
 }) => {
   const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<number | null>(null);
+  const [closeTimeout, setCloseTimeout] = useState<number | null>(null);
+  const [sortHoverTimeout, setSortHoverTimeout] = useState<number | null>(null);
+  const [sortCloseTimeout, setSortCloseTimeout] = useState<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+    }
+    const timeout = window.setTimeout(() => {
+      setShowGenreDropdown(true);
+    }, 300);
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    // Delay closing to allow mouse to move into dropdown
+    const timeout = window.setTimeout(() => {
+      setShowGenreDropdown(false);
+    }, 300);
+    setCloseTimeout(timeout);
+  };
+
+  const handleDropdownMouseEnter = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+  };
+
+  const handleSortMouseEnter = () => {
+    if (sortCloseTimeout) {
+      clearTimeout(sortCloseTimeout);
+      setSortCloseTimeout(null);
+    }
+    if (sortHoverTimeout) {
+      clearTimeout(sortHoverTimeout);
+    }
+    const timeout = window.setTimeout(() => {
+      setShowSortDropdown(true);
+    }, 300);
+    setSortHoverTimeout(timeout);
+  };
+
+  const handleSortMouseLeave = () => {
+    if (sortHoverTimeout) {
+      clearTimeout(sortHoverTimeout);
+      setSortHoverTimeout(null);
+    }
+    const timeout = window.setTimeout(() => {
+      setShowSortDropdown(false);
+    }, 300);
+    setSortCloseTimeout(timeout);
+  };
+
+  const handleSortDropdownMouseEnter = () => {
+    if (sortHoverTimeout) {
+      clearTimeout(sortHoverTimeout);
+      setSortHoverTimeout(null);
+    }
+    if (sortCloseTimeout) {
+      clearTimeout(sortCloseTimeout);
+      setSortCloseTimeout(null);
+    }
+  };
 
   return (
-    <div className="bg-white/70 backdrop-blur-2xl rounded-xl shadow-lg border border-purple-200/30 p-3 sm:p-4 mb-4 space-y-3">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-xl shadow-lg border border-purple-200/30 p-3 sm:p-4 mb-4 space-y-3 relative z-[1000]">
       {/* Search Input */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -72,35 +146,62 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <div className="h-4 w-px bg-purple-200"></div>
 
         {/* Sort By Dropdown */}
-        <select
-          id="sortBy"
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value)}
-          className="px-3 py-1.5 border border-purple-200 rounded-lg focus:ring-1 focus:ring-purple-400 transition-all text-xs sm:text-sm bg-white/80 cursor-pointer font-medium hover:border-purple-300"
-        >
-          <option value="newest">🆕 Newest</option>
-          <option value="oldest">📅 Oldest</option>
-          <option value="mostLiked">❤️ Most Liked</option>
-          <option value="mostViewed">👁️ Most Viewed</option>
-        </select>
+        <div className="relative">
+          <button
+            onClick={() => setShowSortDropdown(!showSortDropdown)}
+            onMouseEnter={handleSortMouseEnter}
+            onMouseLeave={handleSortMouseLeave}
+            className="px-3 py-1.5 border border-purple-200 rounded-lg focus:ring-1 focus:ring-purple-400 transition-all text-xs sm:text-sm bg-white/80 cursor-pointer font-medium hover:border-purple-300 flex items-center gap-1.5"
+          >
+            <span>
+              {sortBy === 'newest' && '🆕 Newest'}
+              {sortBy === 'oldest' && '📅 Oldest'}
+              {sortBy === 'mostLiked' && '❤️ Most Liked'}
+              {sortBy === 'mostViewed' && '👁️ Most Viewed'}
+            </span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
 
-        {/* Items Per Page Dropdown */}
-        <select
-          id="itemsPerPage"
-          value={itemsPerPage}
-          onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="px-3 py-1.5 border border-purple-200 rounded-lg focus:ring-1 focus:ring-purple-400 transition-all text-xs sm:text-sm bg-white/80 cursor-pointer font-medium hover:border-purple-300"
-        >
-          <option value={12}>12 cards/page</option>
-          <option value={24}>24 cards/page</option>
-          <option value={36}>36 cards/page</option>
-          <option value={48}>48 cards/page</option>
-        </select>
+          {showSortDropdown && (
+            <div 
+              className="absolute top-full left-0 mt-2 bg-white border-2 border-purple-200 rounded-lg shadow-2xl w-48 overflow-hidden"
+              onMouseEnter={handleSortDropdownMouseEnter}
+              onMouseLeave={handleSortMouseLeave}
+            >
+              <button
+                onClick={() => { onSortChange('newest'); setShowSortDropdown(false); }}
+                className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                🆕 Newest
+              </button>
+              <button
+                onClick={() => { onSortChange('oldest'); setShowSortDropdown(false); }}
+                className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                📅 Oldest
+              </button>
+              <button
+                onClick={() => { onSortChange('mostLiked'); setShowSortDropdown(false); }}
+                className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                ❤️ Most Liked
+              </button>
+              <button
+                onClick={() => { onSortChange('mostViewed'); setShowSortDropdown(false); }}
+                className="w-full text-left px-4 py-2.5 hover:bg-purple-50 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                👁️ Most Viewed
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Genre Filter Dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowGenreDropdown(!showGenreDropdown)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             className={`px-3 py-1.5 border rounded-lg focus:ring-1 transition-all text-xs sm:text-sm font-medium flex items-center gap-1.5 ${
               selectedGenres.length > 0
                 ? 'bg-purple-600 text-white border-purple-700 shadow-md'
@@ -118,7 +219,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </button>
 
           {showGenreDropdown && (
-            <div className="absolute top-full left-0 mt-2 bg-white border-2 border-purple-200 rounded-lg shadow-2xl z-50 w-64 max-h-80 overflow-y-auto">
+            <div 
+              className="absolute top-full left-0 mt-2 bg-white border-2 border-purple-200 rounded-lg shadow-2xl w-full sm:w-80 md:w-96 max-h-80 overflow-y-auto"
+              onMouseEnter={handleDropdownMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
               <div className="p-3 border-b border-purple-100 flex items-center justify-between">
                 <span className="text-sm font-semibold text-purple-900">Filter by Genre</span>
                 {selectedGenres.length > 0 && (
@@ -131,7 +236,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   </button>
                 )}
               </div>
-              <div className="p-2 space-y-1">
+              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                 {genres.map((genre) => {
                   const isSelected = selectedGenres.includes(genre.id);
                   return (

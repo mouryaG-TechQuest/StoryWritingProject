@@ -8,6 +8,7 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
+  popularity?: number;
 }
 
 interface TimelineEntry {

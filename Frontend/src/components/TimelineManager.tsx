@@ -8,6 +8,7 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
+  popularity?: number;
 }
 
 interface TimelineEntry {
@@ -81,7 +82,8 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
     name: '',
     description: '',
     role: '',
-    actorName: ''
+    actorName: '',
+    popularity: undefined
   });
 
   // Get all character names for color assignment
@@ -497,7 +499,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
     if (newCharacter.name.trim()) {
       onAddCharacter(newCharacter);
       toggleCharacter(entryId, newCharacter.name);
-      setNewCharacter({ name: '', description: '', role: '', actorName: '' });
+      setNewCharacter({ name: '', description: '', role: '', actorName: '', popularity: undefined });
       setShowNewCharacterForm(null);
     }
   };
@@ -1120,13 +1122,24 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                         onChange={(e) => setNewCharacter({ ...newCharacter, actorName: e.target.value })}
                         className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
                       />
-                      <input
-                        type="text"
-                        placeholder="Role (e.g., Protagonist)"
-                        value={newCharacter.role}
-                        onChange={(e) => setNewCharacter({ ...newCharacter, role: e.target.value })}
-                        className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Role (e.g., Protagonist)"
+                          value={newCharacter.role}
+                          onChange={(e) => setNewCharacter({ ...newCharacter, role: e.target.value })}
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          placeholder="Popularity (1-10)"
+                          value={newCharacter.popularity || ''}
+                          onChange={(e) => setNewCharacter({ ...newCharacter, popularity: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
                       <textarea
                         placeholder="Character Description"
                         value={newCharacter.description}
@@ -1145,7 +1158,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                           type="button"
                           onClick={() => {
                             setShowNewCharacterForm(null);
-                            setNewCharacter({ name: '', description: '', role: '', actorName: '' });
+                            setNewCharacter({ name: '', description: '', role: '', actorName: '', popularity: undefined });
                           }}
                           className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
                         >

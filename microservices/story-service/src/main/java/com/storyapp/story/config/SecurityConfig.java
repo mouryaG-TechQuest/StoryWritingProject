@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()  // Public access to all uploaded images (PNG, JPEG, JPG, GIF, WEBP)
                 .requestMatchers(HttpMethod.GET, "/api/stories").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/stories/genres").permitAll()  // Public access to genres
                 .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()  // Allow viewing individual stories
                 .requestMatchers(HttpMethod.POST, "/api/stories/*/view").permitAll()  // Allow view tracking
                 .requestMatchers(HttpMethod.POST, "/api/stories/*/watch-time").permitAll()  // Allow watch time tracking

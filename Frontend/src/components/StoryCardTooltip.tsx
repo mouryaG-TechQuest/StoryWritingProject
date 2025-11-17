@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Clock, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
 
 interface Character {
   id?: string;
@@ -8,6 +8,7 @@ interface Character {
   role: string;
   actorName?: string;
   imageUrls?: string[];
+  popularity?: number; // 1-10 scale for sorting
 }
 
 interface Genre {
@@ -38,41 +39,59 @@ interface StoryCardTooltipProps {
   story: Story;
   visible: boolean;
   position: { x: number; y: number };
+  onClose: () => void;
+  onReadStory?: () => void;
 }
 
-const StoryCardTooltip = ({ story, visible, position }: StoryCardTooltipProps) => {
-  const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+const StoryCardTooltip = ({ story, visible, position, onClose, onReadStory }: StoryCardTooltipProps) => {
+  const [currentStoryImageIndex, setCurrentStoryImageIndex] = useState(0);
+  const [currentCharImageIndex, setCurrentCharImageIndex] = useState(0);
 
   // Reset indices when story changes
   useEffect(() => {
-    setCurrentCharacterIndex(0);
-    setCurrentImageIndex(0);
+    setCurrentStoryImageIndex(0);
+    setCurrentCharImageIndex(0);
   }, [story.id]);
+
+  // Auto-toggle story images every 3 seconds
+  useEffect(() => {
+    if (!story.imageUrls || story.imageUrls.length <= 1) return;
+    const maxImages = Math.min(story.imageUrls.length, 5);
+
+    const interval = setInterval(() => {
+      setCurrentStoryImageIndex((prev) => (prev + 1) % maxImages);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [story.imageUrls]);
+
+  // Auto-toggle character images every 3 seconds
+  const charactersWithPhotos = (story.characters?.filter(c => c.imageUrls && c.imageUrls.length > 0) || [])
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+    .slice(0, 5);
+  
+  useEffect(() => {
+    if (charactersWithPhotos.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentCharImageIndex((prev) => (prev + 1) % charactersWithPhotos.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [charactersWithPhotos.length]);
 
   if (!visible) return null;
 
-  // Filter characters with photos
-  const charactersWithPhotos = story.characters?.filter(c => c.imageUrls && c.imageUrls.length > 0) || [];
-  const currentCharacter = charactersWithPhotos[currentCharacterIndex];
-  const currentCharacterImages = currentCharacter?.imageUrls || [];
-
-  const nextCharacter = () => {
-    setCurrentCharacterIndex((prev) => (prev + 1) % charactersWithPhotos.length);
-    setCurrentImageIndex(0);
+  const nextStoryImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const maxImages = Math.min(story.imageUrls?.length || 1, 5);
+    setCurrentStoryImageIndex((prev) => (prev + 1) % maxImages);
   };
 
-  const prevCharacter = () => {
-    setCurrentCharacterIndex((prev) => (prev - 1 + charactersWithPhotos.length) % charactersWithPhotos.length);
-    setCurrentImageIndex(0);
-  };
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % currentCharacterImages.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + currentCharacterImages.length) % currentCharacterImages.length);
+  const prevStoryImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const maxImages = Math.min(story.imageUrls?.length || 1, 5);
+    setCurrentStoryImageIndex((prev) => (prev - 1 + maxImages) % maxImages);
   };
 
   // Format watch time (seconds to hours:minutes)
@@ -89,42 +108,127 @@ const StoryCardTooltip = ({ story, visible, position }: StoryCardTooltipProps) =
   // Calculate tooltip position to stay within viewport
   const tooltipStyle: React.CSSProperties = {
     position: 'fixed',
-    left: Math.min(position.x, window.innerWidth - 420),
-    top: Math.min(position.y, window.innerHeight - 500),
-    zIndex: 9999,
-    maxWidth: '400px',
+    left: Math.min(position.x, window.innerWidth - 550),
+    top: Math.min(position.y, window.innerHeight - 600),
+    zIndex: 10000,
+    maxWidth: '520px',
     width: '100%',
+    pointerEvents: 'auto', // Allow interaction with tooltip
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   return (
     <div
       style={tooltipStyle}
       className="bg-white rounded-xl shadow-2xl border-2 border-purple-200 overflow-hidden animate-fade-in"
-      onClick={(e) => e.stopPropagation()} // Prevent clicks from propagating
+      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseLeave={(e) => e.stopPropagation()}
     >
       {/* Header with Story Number and Title */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3">
-        <div className="flex items-center justify-between mb-1">
-          {story.storyNumber && (
-            <span className="text-white/90 text-xs font-mono bg-white/20 px-2 py-0.5 rounded">
-              #{story.storyNumber}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 relative">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 bg-white/20 hover:bg-white/30 text-white rounded-full p-1.5 transition-colors z-10"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        
+        <div className="flex items-center justify-between mb-2 pr-8">
+          <div className="flex items-center space-x-2">
+            {story.storyNumber && (
+              <span className="text-white/90 text-xs font-mono bg-white/20 px-2 py-0.5 rounded">
+                #{story.storyNumber}
+              </span>
+            )}
+            <span className="text-white/80 text-xs flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {formatDate(story.createdAt)}
             </span>
-          )}
+          </div>
           <div className="flex items-center space-x-2 text-white/90 text-xs">
             <Clock className="w-3 h-3" />
             <span>{formatWatchTime(story.totalWatchTime)}</span>
           </div>
         </div>
-        <h3 className="text-white font-bold text-sm line-clamp-2">{story.title}</h3>
+        <h3 className="text-white font-bold text-base line-clamp-2">{story.title}</h3>
+        
+        {/* Read Story Button - Visible on hover */}
+        {onReadStory && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+              onReadStory();
+            }}
+            className="mt-3 w-full py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
+          >
+            <span>📖 Read Story</span>
+          </button>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+      {/* Content - Scrollable */}
+      <div className="p-4 space-y-3 max-h-[450px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9333ea #f3f4f6' }}>
+        {/* Images Carousel - Full Width */}
+        {story.imageUrls && story.imageUrls.length > 0 && story.imageUrls.slice(0, 5).length > 0 && (
+          <div>
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+              <div className="relative h-48">
+                <img
+                  src={story.imageUrls.slice(0, 5)[currentStoryImageIndex].startsWith('http') 
+                    ? story.imageUrls.slice(0, 5)[currentStoryImageIndex] 
+                    : `http://localhost:8080${story.imageUrls.slice(0, 5)[currentStoryImageIndex]}`}
+                  alt={`Story image ${currentStoryImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23667eea" width="400" height="300"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="14"%3ENo Image%3C/text%3E%3C/svg%3E';
+                  }}
+                />
+                
+                {/* Navigation Arrows */}
+                {story.imageUrls.slice(0, 5).length > 1 && (
+                  <>
+                    <button
+                      onClick={prevStoryImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-colors z-10"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={nextStoryImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition-colors z-10"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    
+                    {/* Image Counter */}
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+                      {currentStoryImageIndex + 1} / {story.imageUrls.slice(0, 5).length}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Description */}
         {story.description && (
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
-            <p className="text-xs text-gray-700 leading-relaxed">{story.description}</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{story.description}</p>
           </div>
         )}
 
@@ -153,111 +257,66 @@ const StoryCardTooltip = ({ story, visible, position }: StoryCardTooltipProps) =
           </div>
         )}
 
-        {/* Cast with Character and Actor Names */}
+        {/* Cast - 2 lines max, sorted by popularity */}
         {story.characters && story.characters.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cast</p>
-            <div className="space-y-1">
-              {story.characters.map((character, index) => (
-                <div key={character.id || index} className="flex items-center justify-between text-xs bg-purple-50 rounded px-2 py-1 border border-purple-100">
-                  <div className="flex items-center space-x-1 min-w-0 flex-1">
-                    <Film className="w-3 h-3 text-purple-600 flex-shrink-0" />
-                    <span className="font-medium text-purple-900 truncate">{character.name}</span>
-                    {character.role && (
-                      <span className="text-purple-600 text-xs">({character.role})</span>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Cast ({story.characters.length})</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+              {story.characters
+                .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+                .slice(0, 8)
+                .map((character, index) => (
+                  <div key={character.id || index} className="flex flex-col items-center text-xs bg-purple-50 rounded px-2 py-1.5 border border-purple-100">
+                    <div className="font-semibold text-purple-900 truncate w-full text-center">{character.name}</div>
+                    {character.actorName && (
+                      <div className="text-purple-600 text-[10px] truncate w-full text-center">{character.actorName}</div>
                     )}
                   </div>
-                  {character.actorName && (
-                    <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
-                      <User className="w-3 h-3 text-gray-500" />
-                      <span className="text-gray-700 font-medium">{character.actorName}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
+            {story.characters.length > 8 && (
+              <p className="text-xs text-gray-500 mt-2">+{story.characters.length - 8} more cast members</p>
+            )}
           </div>
         )}
 
-        {/* Character Photos Carousel */}
+        {/* Character Photos Carousel - Top 5 by popularity */}
         {charactersWithPhotos.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Character Photos</p>
             <div className="relative bg-gray-100 rounded-lg overflow-hidden">
               {/* Current Character Info */}
-              <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs z-10">
-                <div className="font-semibold">{currentCharacter.name}</div>
-                {currentCharacter.actorName && (
-                  <div className="text-xs opacity-90">{currentCharacter.actorName}</div>
+              <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs z-10 flex items-center gap-1">
+                <div className="font-semibold">{charactersWithPhotos[currentCharImageIndex]?.name}</div>
+                {charactersWithPhotos[currentCharImageIndex]?.popularity && (
+                  <span className="bg-yellow-500 text-black px-1 rounded text-[10px] font-bold">★{charactersWithPhotos[currentCharImageIndex].popularity}</span>
                 )}
               </div>
 
               {/* Image Display */}
               <div className="relative h-48">
-                {currentCharacterImages.length > 0 ? (
-                  <>
-                    <img
-                      src={currentCharacterImages[currentImageIndex].startsWith('http') 
-                        ? currentCharacterImages[currentImageIndex] 
-                        : `http://localhost:8080${currentCharacterImages[currentImageIndex]}`}
-                      alt={currentCharacter.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23667eea" width="400" height="300"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="14"%3ENo Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                    
-                    {/* Image Navigation within Character */}
-                    {currentCharacterImages.length > 1 && (
-                      <>
-                        <button
-                          onClick={prevImage}
-                          className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full"
-                        >
-                          <ChevronLeft className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={nextImage}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full"
-                        >
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                        <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-0.5 rounded-full text-xs">
-                          {currentImageIndex + 1}/{currentCharacterImages.length}
-                        </div>
-                      </>
-                    )}
-                  </>
+                {charactersWithPhotos[currentCharImageIndex]?.imageUrls?.[0] ? (
+                  <img
+                    src={charactersWithPhotos[currentCharImageIndex].imageUrls[0].startsWith('http') 
+                      ? charactersWithPhotos[currentCharImageIndex].imageUrls[0] 
+                      : `http://localhost:8080${charactersWithPhotos[currentCharImageIndex].imageUrls[0]}`}
+                    alt={charactersWithPhotos[currentCharImageIndex].name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23667eea" width="400" height="300"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-size="14"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
                     No photo available
                   </div>
                 )}
-              </div>
-
-              {/* Character Navigation */}
-              {charactersWithPhotos.length > 1 && (
-                <div className="bg-gray-200 px-2 py-1.5 flex items-center justify-between">
-                  <button
-                    onClick={prevCharacter}
-                    className="flex items-center space-x-1 text-xs text-gray-700 hover:text-purple-600 font-medium"
-                  >
-                    <ChevronLeft className="w-3 h-3" />
-                    <span>Prev</span>
-                  </button>
-                  <span className="text-xs text-gray-600 font-medium">
-                    {currentCharacterIndex + 1}/{charactersWithPhotos.length} characters
-                  </span>
-                  <button
-                    onClick={nextCharacter}
-                    className="flex items-center space-x-1 text-xs text-gray-700 hover:text-purple-600 font-medium"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                
+                {/* Character Counter */}
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-0.5 rounded-full text-xs">
+                  {currentCharImageIndex + 1}/{charactersWithPhotos.length}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}

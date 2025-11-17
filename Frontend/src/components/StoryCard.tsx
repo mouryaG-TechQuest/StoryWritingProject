@@ -1,5 +1,5 @@
-import { Edit, Trash2, ThumbsUp, Heart, Eye, EyeOff, MessageCircle, User, ChevronLeft, ChevronRight, Hash } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { Edit, Trash2, ThumbsUp, Heart, Eye, EyeOff, MessageCircle, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import StoryCardTooltip from './StoryCardTooltip';
 
 interface Character {
@@ -8,6 +8,7 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
+  popularity?: number;
 }
 
 interface Genre {
@@ -65,11 +66,33 @@ const StoryCard = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
-  const tooltipTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipTimerRef = useRef<number | null>(null);
   
   const displayCharacters = story.characters?.slice(0, 3) || [];
   const images = story.imageUrls && story.imageUrls.length > 0 ? story.imageUrls : [];
   const hasMultipleImages = images.length > 1;
+
+  // Listen for event to close this tooltip when another card is hovered
+  useEffect(() => {
+    const handleCloseEvent = (e: CustomEvent) => {
+      if (e.detail?.excludeId !== story.id) {
+        // Immediately close this tooltip
+        setShowTooltip(false);
+        if (tooltipTimerRef.current) {
+          clearTimeout(tooltipTimerRef.current);
+          tooltipTimerRef.current = null;
+        }
+      }
+    };
+
+    window.addEventListener('closeAllTooltips', handleCloseEvent as EventListener);
+    return () => {
+      window.removeEventListener('closeAllTooltips', handleCloseEvent as EventListener);
+      if (tooltipTimerRef.current) {
+        clearTimeout(tooltipTimerRef.current);
+      }
+    };
+  }, [story.id]);
   
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -79,60 +102,107 @@ const StoryCard = ({
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
+  const handleMouseEnter = () => {
+    // Close any other open tooltips immediately
+    window.dispatchEvent(new CustomEvent('closeAllTooltips', { detail: { excludeId: story.id } }));
+    
     // Clear any existing timer
     if (tooltipTimerRef.current) {
       clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
     }
 
-    // Show tooltip after 500ms delay
-    tooltipTimerRef.current = setTimeout(() => {
+    // Show tooltip after 300ms delay
+    tooltipTimerRef.current = window.setTimeout(() => {
       const rect = cardRef.current?.getBoundingClientRect();
       if (rect) {
         setTooltipPosition({
-          x: rect.right + 10,
+          x: rect.right + 15,
           y: rect.top,
         });
         setShowTooltip(true);
       }
-    }, 500);
+    }, 300);
   };
 
-  const handleMouseLeave = () => {
-    // Clear timer and hide tooltip
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    // Check if mouse is moving to tooltip
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (relatedTarget && relatedTarget.closest('.story-tooltip')) {
+      return; // Don't hide if moving to tooltip
+    }
+    
+    // Delay hiding to allow moving to tooltip
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+    tooltipTimerRef.current = window.setTimeout(() => {
+      setShowTooltip(false);
+    }, 300);
+  };
+
+  const handleTooltipMouseEnter = () => {
+    // Keep tooltip visible when hovering over it
     if (tooltipTimerRef.current) {
       clearTimeout(tooltipTimerRef.current);
     }
+  };
+
+  const handleTooltipMouseLeave = () => {
+    // Hide tooltip when leaving it
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+    }
+    tooltipTimerRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 300);
+  };
+
+  const handleCloseTooltip = () => {
     setShowTooltip(false);
   };
   
   return (
     <>
-      {/* Tooltip */}
-      <StoryCardTooltip 
-        story={story}
-        visible={showTooltip}
-        position={tooltipPosition}
-      />
+      {/* Tooltip Overlay - Fixed Position */}
+      {showTooltip && (
+        <div 
+          className="story-tooltip fixed inset-0 z-[999999]"
+          style={{ pointerEvents: 'none' }}
+        >
+          <div
+            onMouseEnter={handleTooltipMouseEnter}
+            onMouseLeave={handleTooltipMouseLeave}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <StoryCardTooltip 
+              story={story}
+              visible={showTooltip}
+              position={tooltipPosition}
+              onClose={handleCloseTooltip}
+              onReadStory={onView}
+            />
+          </div>
+        </div>
+      )}
 
       <div 
         ref={cardRef}
-        className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col h-full"
-        onClick={onView}
+        className="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden flex flex-col h-full relative z-10"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
       {/* Gradient Header with Title and Story Number */}
       <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 p-3">
-        {/* Story Number Badge */}
-        {storyNumber && (
-          <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center space-x-1">
-            <Hash className="w-3 h-3 text-white" />
-            <span className="text-white font-bold text-xs">{storyNumber}</span>
-          </div>
-        )}
+        {/* Story Number Badge - Hidden, moved to inside title area */}
         
-        <h3 className="text-white font-bold text-base sm:text-lg line-clamp-2 drop-shadow-lg pr-16 pl-12">
+        <h3 className="text-white font-bold text-lg sm:text-xl line-clamp-2 drop-shadow-lg pr-16">
+          {storyNumber && (
+            <span className="inline-flex items-center bg-white/10 backdrop-blur-sm px-1.5 py-0.5 rounded text-white/60 mr-2 text-[10px] font-normal">
+              #{storyNumber}
+            </span>
+          )}
           {story.title}
         </h3>
         

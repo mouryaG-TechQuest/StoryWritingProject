@@ -31,6 +31,7 @@ interface Character {
   description: string;
   role: string;
   actorName?: string;
+  popularity?: number;
 }
 
 interface Genre {
@@ -86,12 +87,11 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState<'home' | 'favorites' | 'profile' | 'settings' | 'support' | 'subscription' | 'cart'>('home');
   const [genres, setGenres] = useState<Genre[]>([]);
   
-  // Search, filter, and pagination state
+  // Search, filter, and infinite scroll state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'mostLiked' | 'mostViewed'>('newest');
-  const [currentPageNum, setCurrentPageNum] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [displayedCount, setDisplayedCount] = useState(12); // For infinite scroll
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -456,16 +456,28 @@ const App = () => {
     return sorted;
   }, [displayStories, searchQuery, sortBy, selectedGenres]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredAndSortedStories.length / itemsPerPage);
-  const startIndex = (currentPageNum - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedStories = filteredAndSortedStories.slice(startIndex, endIndex);
+  // Infinite scroll - display limited items
+  const displayedStories = filteredAndSortedStories.slice(0, displayedCount);
 
-  // Reset to page 1 when search/sort/filter changes
+  // Reset displayed count when filters change
   useEffect(() => {
-    setCurrentPageNum(1);
-  }, [searchQuery, sortBy, view, itemsPerPage, selectedGenres]);
+    setDisplayedCount(12);
+  }, [searchQuery, sortBy, view, selectedGenres]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 500) {
+        // Load more when near bottom
+        if (displayedCount < filteredAndSortedStories.length) {
+          setDisplayedCount(prev => Math.min(prev + 12, filteredAndSortedStories.length));
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [displayedCount, filteredAndSortedStories.length]);
 
   // Early return AFTER all hooks
   if (!user) {
@@ -536,8 +548,6 @@ const App = () => {
                     onSearchChange={setSearchQuery}
                     sortBy={sortBy}
                     onSortChange={(value) => setSortBy(value as 'newest' | 'oldest' | 'mostLiked' | 'mostViewed')}
-                    itemsPerPage={itemsPerPage}
-                    onItemsPerPageChange={setItemsPerPage}
                     totalResults={filteredAndSortedStories.length}
                     genres={genres}
                     selectedGenres={selectedGenres}
@@ -550,7 +560,7 @@ const App = () => {
                 ) : filteredAndSortedStories.length > 0 ? (
                   <>
                     <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                      {paginatedStories.map((story, index) => {
+                      {displayedStories.map((story, index) => {
                         return (
                           <StoryCard
                             key={story.id}
@@ -568,15 +578,12 @@ const App = () => {
                       })}
                     </div>
 
-                    {/* Pagination */}
-                    {filteredAndSortedStories.length > itemsPerPage && (
-                      <Pagination
-                        currentPage={currentPageNum}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPageNum}
-                        itemsPerPage={itemsPerPage}
-                        totalItems={filteredAndSortedStories.length}
-                      />
+                    {/* Loading indicator for infinite scroll */}
+                    {displayedCount < filteredAndSortedStories.length && (
+                      <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <p className="text-gray-600 mt-2">Loading more stories...</p>
+                      </div>
                     )}
                   </>
                 ) : displayStories.length > 0 ? (

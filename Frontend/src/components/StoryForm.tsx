@@ -10,6 +10,7 @@ interface Character {
   role: string;
   actorName?: string;
   imageUrls?: string[];  // Changed from imageUrl to imageUrls array
+  popularity?: number;
 }
 
 interface Genre {
@@ -974,13 +975,30 @@ const StoryForm = ({
                           className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
                         />
 
-                        <input
-                          type="text"
-                          placeholder="Role (e.g., Protagonist, Villain)"
-                          value={char.role}
-                          onChange={(e) => updateCharacter(index, 'role', e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder="Role (e.g., Protagonist, Villain)"
+                            value={char.role}
+                            onChange={(e) => updateCharacter(index, 'role', e.target.value)}
+                            className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
+                          />
+
+                          <div>
+                            <label className="block text-xs font-medium text-purple-700 mb-1">
+                              Popularity (1-10)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              placeholder="5"
+                              value={char.popularity || ''}
+                              onChange={(e) => updateCharacter(index, 'popularity', e.target.value ? parseInt(e.target.value) : undefined)}
+                              className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm sm:text-base"
+                            />
+                          </div>
+                        </div>
 
                         <textarea
                           placeholder="Character Description"

@@ -9,6 +9,7 @@ interface Character {
   role: string;
   actorName?: string;
   imageUrls?: string[];  // Changed from imageUrl to imageUrls array
+  popularity?: number;
 }
 
 interface TimelineEntry {
@@ -365,7 +366,7 @@ export default function StoryDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[1000000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       {contentCard}
     </div>
