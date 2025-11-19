@@ -20,11 +20,13 @@ import com.storyapp.story.repository.CommentRepository;
 import com.storyapp.story.repository.GenreRepository;
 import com.storyapp.story.repository.StoryGenreRepository;
 import com.storyapp.story.repository.StoryViewRepository;
+import com.storyapp.story.client.UserServiceClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,11 +40,13 @@ public class StoryService {
     private final GenreRepository genreRepository;
     private final StoryGenreRepository storyGenreRepository;
     private final StoryViewRepository storyViewRepository;
+    private final UserServiceClient userServiceClient;
 
     public StoryService(StoryRepository storyRepository, CharacterRepository characterRepository, 
                         LikeRepository likeRepository, FavoriteRepository favoriteRepository,
                         CommentRepository commentRepository, GenreRepository genreRepository,
-                        StoryGenreRepository storyGenreRepository, StoryViewRepository storyViewRepository) {
+                        StoryGenreRepository storyGenreRepository, StoryViewRepository storyViewRepository,
+                        UserServiceClient userServiceClient) {
         this.storyRepository = storyRepository;
         this.characterRepository = characterRepository;
         this.likeRepository = likeRepository;
@@ -51,6 +55,7 @@ public class StoryService {
         this.genreRepository = genreRepository;
         this.storyGenreRepository = storyGenreRepository;
         this.storyViewRepository = storyViewRepository;
+        this.userServiceClient = userServiceClient;
     }
 
     @Transactional
@@ -70,6 +75,7 @@ public class StoryService {
         story.setWriters(request.getWriters());
         story.setTimelineJson(request.getTimelineJson());
         story.setIsPublished(request.getIsPublished() != null ? request.getIsPublished() : false);
+        story.setShowSceneTimeline(request.getShowSceneTimeline() != null ? request.getShowSceneTimeline() : true);
         
         // Generate unique story number
         story.setStoryNumber(generateUniqueStoryNumber());
@@ -168,6 +174,13 @@ public class StoryService {
         story.setTimelineJson(request.getTimelineJson());
         if (request.getIsPublished() != null) {
             story.setIsPublished(request.getIsPublished());
+        }
+        System.out.println("Received showSceneTimeline: " + request.getShowSceneTimeline());
+        if (request.getShowSceneTimeline() != null) {
+            story.setShowSceneTimeline(request.getShowSceneTimeline());
+            System.out.println("Set showSceneTimeline to: " + request.getShowSceneTimeline());
+        } else {
+            System.out.println("showSceneTimeline is NULL - not updating");
         }
 
         // Delete old characters and images
@@ -293,6 +306,18 @@ public class StoryService {
         resp.setCommentCount((int) commentRepository.countByStory(story));
         resp.setStoryNumber(story.getStoryNumber());
         resp.setTotalWatchTime(story.getTotalWatchTime());
+        resp.setShowSceneTimeline(story.getShowSceneTimeline());
+        
+        // Fetch author email from User Service
+        try {
+            Map<String, Object> userData = userServiceClient.getUserByUsername(story.getAuthorUsername());
+            if (userData != null && userData.containsKey("email")) {
+                resp.setAuthorEmail((String) userData.get("email"));
+            }
+        } catch (Exception e) {
+            // Gracefully handle if user-service unavailable or user not found
+            resp.setAuthorEmail(null);
+        }
         
         if (currentUsername != null) {
             resp.setIsLikedByCurrentUser(likeRepository.existsByStoryAndUsername(story, currentUsername));

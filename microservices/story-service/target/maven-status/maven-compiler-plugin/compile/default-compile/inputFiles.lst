@@ -5,6 +5,7 @@ C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\jav
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\model\StoryImage.java
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\dto\GenreResponse.java
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\model\StoryGenre.java
+C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\client\UserServiceClient.java
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\config\SecurityConfig.java
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\config\CorsConfig.java
 C:\Users\hp\Desktop\StoryWritingProject\microservices\story-service\src\main\java\com\storyapp\story\repository\CharacterRepository.java

@@ -33,6 +33,7 @@ com\storyapp\story\exception\GlobalExceptionHandler.class
 com\storyapp\story\model\Favorite.class
 com\storyapp\story\model\Genre.class
 com\storyapp\story\repository\LikeRepository.class
+com\storyapp\story\client\UserServiceClient.class
 com\storyapp\story\dto\StoryRequest.class
 com\storyapp\story\repository\StoryViewRepository.class
 com\storyapp\story\controller\StoryController.class

@@ -57,6 +57,9 @@ public class Story {
     @Column(name = "total_watch_time", nullable = false)
     private Long totalWatchTime = 0L; // in seconds
 
+    @Column(name = "show_scene_timeline", nullable = false)
+    private Boolean showSceneTimeline = true;
+
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryView> storyViews = new ArrayList<>();
 
@@ -234,5 +237,13 @@ public class Story {
 
     public void setStoryViews(List<StoryView> storyViews) {
         this.storyViews = storyViews;
+    }
+
+    public Boolean getShowSceneTimeline() {
+        return showSceneTimeline;
+    }
+
+    public void setShowSceneTimeline(Boolean showSceneTimeline) {
+        this.showSceneTimeline = showSceneTimeline;
     }
 }

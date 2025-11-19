@@ -44,6 +44,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
   const [quickJumpValue, setQuickJumpValue] = useState('');
   const [hiddenScenes, setHiddenScenes] = useState<Set<string>>(new Set());
   const [manuallySetActive, setManuallySetActive] = useState(false);
+  const [sceneVisibilityFilter, setSceneVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [currentScenePage, setCurrentScenePage] = useState(0);
   const [scenesPerPageList, setScenesPerPageList] = useState(10);
@@ -54,20 +55,18 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
   const [searchPageNumber, setSearchPageNumber] = useState('');
   const [searchSceneNumber, setSearchSceneNumber] = useState('');
   const MIN_PREVIEW_SCENES = 5;
-  const MAX_PREVIEW_SCENES_WRITER = 30;
-  const MAX_PREVIEW_SCENES_READER = 15;
+  const MAX_PREVIEW_SCENES = 10; // Maximum 10 scenes
   
   // Dynamic scenes per page based on screen width
-  const [scenesPerPage, setScenesPerPage] = useState(20);
+  const [scenesPerPage, setScenesPerPage] = useState(10);
   
   useEffect(() => {
     const updateScenesPerPage = () => {
       const width = window.innerWidth;
       if (width < 640) setScenesPerPage(5); // mobile
-      else if (width < 768) setScenesPerPage(8); // tablet
-      else if (width < 1024) setScenesPerPage(12); // small desktop
-      else if (width < 1280) setScenesPerPage(16); // medium desktop
-      else setScenesPerPage(20); // large desktop
+      else if (width < 768) setScenesPerPage(7); // tablet
+      else if (width < 1024) setScenesPerPage(8); // small desktop
+      else setScenesPerPage(10); // large desktop - max 10
     };
     
     updateScenesPerPage();
@@ -91,19 +90,31 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
 
   // Filter timeline entries based on search query
   const filteredTimeline = useMemo(() => {
-    if (!searchQuery.trim()) return timeline;
+    let filtered = timeline;
     
-    const query = searchQuery.toLowerCase();
-    return timeline.filter((entry, index) => {
-      const sceneNumber = (index + 1).toString();
-      const eventTitle = entry.event.toLowerCase();
-      const description = entry.description.toLowerCase();
-      
-      return sceneNumber.includes(query) || 
-             eventTitle.includes(query) || 
-             description.includes(query);
-    });
-  }, [timeline, searchQuery]);
+    // Apply visibility filter
+    if (sceneVisibilityFilter === 'visible') {
+      filtered = filtered.filter(entry => !hiddenScenes.has(entry.id));
+    } else if (sceneVisibilityFilter === 'hidden') {
+      filtered = filtered.filter(entry => hiddenScenes.has(entry.id));
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((entry, index) => {
+        const sceneNumber = (index + 1).toString();
+        const eventTitle = entry.event.toLowerCase();
+        const description = entry.description.toLowerCase();
+        
+        return sceneNumber.includes(query) || 
+               eventTitle.includes(query) || 
+               description.includes(query);
+      });
+    }
+    
+    return filtered;
+  }, [timeline, searchQuery, sceneVisibilityFilter, hiddenScenes]);
 
   // Paginate filtered timeline
   const totalScenePages = Math.ceil(filteredTimeline.length / scenesPerPageList);
@@ -198,9 +209,10 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
   }, [timeline, manuallySetActive, activeSceneIndex]);
 
   const addTimelineEntry = () => {
+    const newSceneNumber = timeline.length + 1;
     const newEntry: TimelineEntry = {
       id: Date.now().toString(),
-      event: '',
+      event: `Scene ${newSceneNumber}`, // Default title with scene number
       description: '',
       characters: [],
       imageUrls: [],
@@ -748,26 +760,46 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Filter and Search Bar */}
       {timeline.length > 0 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
-          <input
-            type="text"
-            placeholder="Search by scene number or title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-400 hover:text-purple-600"
+        <div className="space-y-3">
+          {/* Scene Visibility Filter */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-gray-700">Filter Scenes:</label>
+            <select
+              value={sceneVisibilityFilter}
+              onChange={(e) => {
+                setSceneVisibilityFilter(e.target.value as 'all' | 'visible' | 'hidden');
+                setCurrentScenePage(0);
+              }}
+              className="px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white font-medium text-sm"
             >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+              <option value="all">All Scenes ({timeline.length})</option>
+              <option value="visible">Visible Scenes ({timeline.filter(e => !hiddenScenes.has(e.id)).length})</option>
+              <option value="hidden">Hidden Scenes ({hiddenScenes.size})</option>
+            </select>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
+            <input
+              type="text"
+              placeholder="Search by scene number or title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-10 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-400 hover:text-purple-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 

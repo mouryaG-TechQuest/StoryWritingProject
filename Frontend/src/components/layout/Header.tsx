@@ -12,9 +12,36 @@ interface HeaderProps {
 
 const Header = ({ user, onLogout, onNavigate }: HeaderProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<number | null>(null);
+  const [closeTimeout, setCloseTimeout] = useState<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+    }
+    const timeout = window.setTimeout(() => {
+      setShowDropdown(true);
+    }, 150);
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    const timeout = window.setTimeout(() => {
+      setShowDropdown(false);
+    }, 200);
+    setCloseTimeout(timeout);
+  };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg shadow-lg border-b border-purple-100 py-2 sm:py-3 px-3 sm:px-6">
+    <nav className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-lg shadow-lg border-b border-purple-100 py-2 sm:py-3 px-3 sm:px-6">
       <div className="max-w-[1920px] mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-2 cursor-pointer group" onClick={() => onNavigate('home')}>
           <div className="p-1.5 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
@@ -44,9 +71,12 @@ const Header = ({ user, onLogout, onNavigate }: HeaderProps) => {
           >
             <ShoppingCart className="w-4 h-4" />
           </button>
-          <div className="relative">
+          <div 
+            className="relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-1.5 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-all duration-200 transform hover:scale-105"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md ring-2 ring-purple-200">
@@ -56,37 +86,37 @@ const Header = ({ user, onLogout, onNavigate }: HeaderProps) => {
             </button>
             
             {showDropdown && (
-              <div className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-100 py-2 z-50 animate-fade-in-down">
+              <div className="absolute right-0 mt-1 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-100 py-2 z-[1200] animate-fade-in-down">
                 <button
-                  onClick={() => { setShowDropdown(false); onNavigate('profile'); }}
+                  onClick={() => { onNavigate('profile'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"
                 >
                   <User className="w-5 h-5 text-gray-600" />
                   <span className="text-gray-700">Profile</span>
                 </button>
                 <button
-                  onClick={() => { setShowDropdown(false); onNavigate('favorites'); }}
+                  onClick={() => { onNavigate('favorites'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"
                 >
                   <Heart className="w-5 h-5 text-gray-600" />
                   <span className="text-gray-700">Favorites</span>
                 </button>
                 <button
-                  onClick={() => { setShowDropdown(false); onNavigate('subscription'); }}
+                  onClick={() => { onNavigate('subscription'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"
                 >
                   <Crown className="w-5 h-5 text-gray-600" />
                   <span className="text-gray-700">Subscription</span>
                 </button>
                 <button
-                  onClick={() => { setShowDropdown(false); onNavigate('settings'); }}
+                  onClick={() => { onNavigate('settings'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"
                 >
                   <Settings className="w-5 h-5 text-gray-600" />
                   <span className="text-gray-700">Settings</span>
                 </button>
                 <button
-                  onClick={() => { setShowDropdown(false); onNavigate('support'); }}
+                  onClick={() => { onNavigate('support'); }}
                   className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 transition"
                 >
                   <HelpCircle className="w-5 h-5 text-gray-600" />

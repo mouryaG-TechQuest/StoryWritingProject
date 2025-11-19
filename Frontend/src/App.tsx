@@ -60,6 +60,7 @@ interface Story {
   genres?: Genre[];
   storyNumber?: string;
   totalWatchTime?: number;
+  showSceneTimeline?: boolean;
 }
 
 interface FormData {
@@ -72,6 +73,7 @@ interface FormData {
   isPublished?: boolean;
   writers?: string;
   genreIds?: number[];
+  showSceneTimeline?: boolean;
 }
 
 const App = () => {
@@ -102,7 +104,8 @@ const App = () => {
     characters: [{ name: '', description: '', role: '', actorName: '' }],
     isPublished: false,
     writers: '',
-    genreIds: []
+    genreIds: [],
+    showSceneTimeline: true
   });
 
   useEffect(() => {
@@ -170,6 +173,8 @@ const App = () => {
       setError('Story title is required');
       return;
     }
+    
+    console.log('Submitting story with showSceneTimeline:', formData.showSceneTimeline);
     
     setLoading(true);
 
@@ -244,7 +249,8 @@ const App = () => {
         : [{ name: '', description: '', role: '', actorName: '' }],
       isPublished: story.isPublished || false,
       writers: story.writers || '',
-      genreIds: story.genres?.map(g => g.id) || []
+      genreIds: story.genres?.map(g => g.id) || [],
+      showSceneTimeline: story.showSceneTimeline
     });
     setShowForm(true);
     
@@ -284,7 +290,8 @@ const App = () => {
       characters: [{ name: '', description: '', role: '', actorName: '' }],
       isPublished: false,
       writers: '',
-      genreIds: []
+      genreIds: [],
+      showSceneTimeline: true
     });
     setEditingStory(null);
     setShowForm(false);

@@ -12,6 +12,7 @@ public class StoryRequest {
     private List<CharacterRequest> characters;
     private Boolean isPublished;
     private List<Long> genreIds;
+    private Boolean showSceneTimeline;
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -31,4 +32,6 @@ public class StoryRequest {
     public void setIsPublished(Boolean isPublished) { this.isPublished = isPublished; }
     public List<Long> getGenreIds() { return genreIds; }
     public void setGenreIds(List<Long> genreIds) { this.genreIds = genreIds; }
+    public Boolean getShowSceneTimeline() { return showSceneTimeline; }
+    public void setShowSceneTimeline(Boolean showSceneTimeline) { this.showSceneTimeline = showSceneTimeline; }
 }

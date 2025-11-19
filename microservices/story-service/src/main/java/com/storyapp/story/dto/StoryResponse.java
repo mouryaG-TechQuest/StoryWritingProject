@@ -23,6 +23,8 @@ public class StoryResponse {
     private List<GenreResponse> genres;
     private String storyNumber;
     private Long totalWatchTime; // in seconds
+    private Boolean showSceneTimeline;
+    private String authorEmail;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -62,4 +64,8 @@ public class StoryResponse {
     public void setStoryNumber(String storyNumber) { this.storyNumber = storyNumber; }
     public Long getTotalWatchTime() { return totalWatchTime; }
     public void setTotalWatchTime(Long totalWatchTime) { this.totalWatchTime = totalWatchTime; }
+    public Boolean getShowSceneTimeline() { return showSceneTimeline; }
+    public void setShowSceneTimeline(Boolean showSceneTimeline) { this.showSceneTimeline = showSceneTimeline; }
+    public String getAuthorEmail() { return authorEmail; }
+    public void setAuthorEmail(String authorEmail) { this.authorEmail = authorEmail; }
 }

@@ -1,4 +1,4 @@
-import { Plus, Trash2, Upload, X, Users, BookOpen, Info, Eye, Filter, SortAsc, ChevronDown, ChevronUp, Search, ChevronLeft, ChevronRight, Image as ImageIcon, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Users, BookOpen, Info, Eye, Filter, SortAsc, ChevronDown, ChevronUp, Search, ChevronLeft, ChevronRight, Image as ImageIcon, EyeOff, Film, Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import TimelineManager from './TimelineManager';
 import { getAllCharacterNames, getCharacterColor } from '../utils/characterColors.tsx';
@@ -29,6 +29,7 @@ interface FormData {
   genreIds?: number[];
   isPublished?: boolean;
   writers?: string;
+  showSceneTimeline?: boolean; // Option to show/hide scene timeline for readers
 }
 
 interface TimelineEntry {
@@ -82,24 +83,21 @@ const StoryForm = ({
   const [sceneSearchQuery, setSceneSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [screenSize, setScreenSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const [showEmptySceneDialog, setShowEmptySceneDialog] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<React.FormEvent | null>(null);
   const CAST_PER_PAGE = 20; // Paginate cast members
   const MIN_SCENES_PER_PAGE = 5;
-  const MAX_SCENES_PER_PAGE_WRITER = 30;
-  const MAX_SCENES_PER_PAGE_READER = 15;
+  const MAX_SCENES_PER_PAGE = 10; // Maximum 10 scenes per page
   
   // Calculate max scenes based on screen size
   const getMaxScenesForScreen = () => {
-    if (writerMode) {
-      if (screenSize.height < 600) return 5; // Small phones
-      if (screenSize.height < 800) return 10; // Medium phones/tablets
-      if (screenSize.height < 1000) return 20; // Laptops
-      return 30; // Large screens
-    } else {
-      if (screenSize.height < 600) return 5; // Small phones
-      if (screenSize.height < 800) return 8; // Medium phones/tablets
-      if (screenSize.height < 1000) return 12; // Laptops
-      return 15; // Large screens
-    }
+    if (screenSize.height < 600) return 5; // Small phones
+    if (screenSize.height < 800) return 7; // Medium phones/tablets
+    if (screenSize.height < 1000) return 8; // Laptops
+    return 10; // Large screens - max 10
   };
   
   // Get responsive text size classes
@@ -109,6 +107,19 @@ const StoryForm = ({
     return 'text-lg sm:text-xl leading-loose'; // Large
   };
   
+  // Initialize timeline state BEFORE useEffects that reference it
+  const [timeline, setTimeline] = useState<TimelineEntry[]>(() => {
+    try {
+      const parsedTimeline = formData.timelineJson ? JSON.parse(formData.timelineJson) : [];
+      // Filter out empty scenes (no description AND no images) from database
+      return parsedTimeline.filter((entry: TimelineEntry) => 
+        entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
+      );
+    } catch {
+      return [];
+    }
+  });
+  
   // Update screen size on resize
   useEffect(() => {
     const handleResize = () => {
@@ -117,17 +128,30 @@ const StoryForm = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const [timeline, setTimeline] = useState<TimelineEntry[]>(() => {
-    try {
-      return formData.timelineJson ? JSON.parse(formData.timelineJson) : [];
-    } catch {
-      return [];
-    }
-  });
+
+  // Track unsaved changes
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [formData, timeline]);
+
+  // Prevent page reload/navigation without confirmation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleTimelineChange = (newTimeline: TimelineEntry[]) => {
     setTimeline(newTimeline);
     setFormData({ ...formData, timelineJson: JSON.stringify(newTimeline) });
+    setHasUnsavedChanges(true);
   };
 
   const handleAddCharacterFromTimeline = async (character: Character) => {
@@ -498,6 +522,118 @@ const StoryForm = ({
       .join('\n\n');
   };
 
+  // Validate scenes have content or images
+  const validateScenes = () => {
+    if (!timeline || timeline.length === 0) return [];
+    
+    const invalidScenes = timeline.map((entry, idx) => ({
+      index: idx,
+      sceneNumber: idx + 1,
+      id: entry.id,
+      hasContent: entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
+    })).filter(scene => !scene.hasContent);
+    
+    return invalidScenes;
+  };
+
+  const handleDeleteInvalidScenes = () => {
+    if (!timeline) return;
+    
+    const validScenes = timeline.filter(entry => 
+      entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
+    );
+    setTimeline(validScenes);
+    setFormData({ ...formData, timelineJson: JSON.stringify(validScenes) });
+  };
+
+  const scenesWithoutContent = validateScenes();
+
+  // Handle navigation with confirmation
+  const handleCancelWithConfirmation = () => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(() => onCancel);
+      setShowLeaveConfirmation(true);
+    } else {
+      onCancel();
+    }
+  };
+
+  const handleTabChangeWithConfirmation = (tabId: 'details' | 'characters' | 'timeline' | 'preview') => {
+    // Allow free navigation between tabs without confirmation
+    setActiveTab(tabId);
+  };
+
+  const confirmLeave = () => {
+    setShowLeaveConfirmation(false);
+    setHasUnsavedChanges(false);
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+  };
+
+  const cancelLeave = () => {
+    setShowLeaveConfirmation(false);
+    setPendingNavigation(null);
+  };
+
+  // Wrap onSubmit to clear unsaved changes flag
+  const handleSubmitWithValidation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check for invalid scenes
+    const invalidScenes = validateScenes();
+    if (invalidScenes.length > 0) {
+      // Show inline dialog instead of alert
+      setPendingSubmit(e);
+      setShowEmptySceneDialog(true);
+      // Scroll to the validation warning
+      setTimeout(() => {
+        const warningElement = document.querySelector('[data-validation-warning]');
+        if (warningElement) {
+          warningElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
+    
+    setHasUnsavedChanges(false);
+    await onSubmit(e);
+  };
+
+  const handleDeleteEmptyScenesAndSubmit = async () => {
+    if (!timeline) return;
+    
+    // Filter valid scenes immediately
+    const validScenes = timeline.filter(entry => 
+      entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
+    );
+    
+    // Update both timeline and formData synchronously
+    const updatedFormData = { ...formData, timelineJson: JSON.stringify(validScenes) };
+    setTimeline(validScenes);
+    setFormData(updatedFormData);
+    setShowEmptySceneDialog(false);
+    
+    // Submit immediately with the updated data
+    setHasUnsavedChanges(false);
+    if (pendingSubmit) {
+      // Create a new event with the updated form data
+      const submitEvent = { ...pendingSubmit };
+      await onSubmit(submitEvent);
+      setPendingSubmit(null);
+    }
+  };
+
+  const handleStayAndFixScenes = () => {
+    setShowEmptySceneDialog(false);
+    setPendingSubmit(null);
+    // Switch to timeline tab if not already there
+    if (activeTab !== 'timeline') {
+      setActiveTab('timeline');
+    }
+  };
+
   const renderFormattedStory = (text: string) => {
     if (!text) return 'No content yet. Add timeline entries or write content in Story Details.';
     
@@ -577,7 +713,7 @@ const StoryForm = ({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                onClick={() => handleTabChangeWithConfirmation(tab.id as typeof activeTab)}
                 className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-semibold transition-all border-b-4 whitespace-nowrap text-sm sm:text-base ${
                   isActive ? 'border-current' : 'border-transparent'
                 } ${colorClasses[tab.color]}`}
@@ -598,7 +734,7 @@ const StoryForm = ({
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="p-3 sm:p-4 lg:p-6">
+      <form onSubmit={handleSubmitWithValidation} className="p-3 sm:p-4 lg:p-6">
         {/* Story Details Tab */}
         {activeTab === 'details' && (
           <div className="space-y-4 animate-fadeIn">
@@ -1118,9 +1254,27 @@ const StoryForm = ({
                 Build Your Story Timeline
               </h3>
               <p className="text-green-700 text-sm">
-                Create a sequence of events with characters and images. The timeline will automatically generate your complete story.
+                Create a sequence of events with characters and images. The timeline will automatically generate your complete story. Maximum 10 scenes per page.
               </p>
             </div>
+
+            {/* Validation Warning */}
+            {scenesWithoutContent.length > 0 && (
+              <div data-validation-warning className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg mb-4 shadow-md">
+                <div className="flex items-start gap-3">
+                  <Info className="w-6 h-6 text-yellow-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-yellow-900 mb-2">⚠️ Empty Scenes Detected</h4>
+                    <p className="text-yellow-800 text-sm mb-2">
+                      <strong>Scene {scenesWithoutContent.map(s => s.sceneNumber).join(', ')}</strong> {scenesWithoutContent.length === 1 ? 'is' : 'are'} missing content or images.
+                    </p>
+                    <p className="text-yellow-700 text-xs">
+                      Each scene must have either a description or at least one image. When you click Update Story, you'll be asked to either delete these scenes or stay and fix them.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <TimelineManager
               timeline={timeline}
@@ -1250,13 +1404,13 @@ const StoryForm = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => setCustomScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_WRITER, customScenesPerPage + 1))}
+                          onClick={() => setCustomScenesPerPage(Math.min(MAX_SCENES_PER_PAGE, customScenesPerPage + 1))}
                           className="px-2 sm:px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
                         >
                           +
                         </button>
                       </div>
-                      <span className="text-xs text-purple-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_WRITER, getMaxScenesForScreen())})</span>
+                      <span className="text-xs text-purple-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE, getMaxScenesForScreen())})</span>
                     </div>
                   </div>
                 )}
@@ -1283,7 +1437,7 @@ const StoryForm = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setReaderScenesPerPage(Math.min(MAX_SCENES_PER_PAGE_READER, readerScenesPerPage + 1));
+                            setReaderScenesPerPage(Math.min(MAX_SCENES_PER_PAGE, readerScenesPerPage + 1));
                             setPreviewPage(0);
                           }}
                           className="px-2 sm:px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm font-bold"
@@ -1291,7 +1445,7 @@ const StoryForm = ({
                           +
                         </button>
                       </div>
-                      <span className="text-xs text-gray-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE_READER, getMaxScenesForScreen())})</span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">(range: {MIN_SCENES_PER_PAGE}-{Math.min(MAX_SCENES_PER_PAGE, getMaxScenesForScreen())})</span>
                     </div>
                   </div>
                 )}
@@ -1817,6 +1971,31 @@ const StoryForm = ({
             </label>
           </div>
 
+          {/* Scene Timeline Visibility Toggle */}
+          <div className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border-2 border-purple-200">
+            <div className="flex items-center space-x-3">
+              <Film className="w-6 h-6 text-purple-600" />
+              <div>
+                <h4 className="font-bold text-gray-900">Show Scene Timeline to Readers</h4>
+                <p className="text-sm text-gray-600">
+                  {formData.showSceneTimeline !== false ? 'Readers can view interactive scene timeline' : 'Scene timeline hidden from readers'}
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.showSceneTimeline !== false}
+                onChange={(e) => {
+                  console.log('Toggle changed:', e.target.checked);
+                  setFormData({ ...formData, showSceneTimeline: e.target.checked });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -1829,7 +2008,7 @@ const StoryForm = ({
             </button>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={handleCancelWithConfirmation}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition font-semibold text-gray-700"
             >
               Cancel
@@ -1837,6 +2016,93 @@ const StoryForm = ({
           </div>
         </div>
       </form>
+
+      {/* Empty Scene Confirmation Dialog */}
+      {showEmptySceneDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 animate-fadeIn">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="bg-yellow-100 rounded-full p-3">
+                <Info className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Empty Scenes Detected
+                </h3>
+                <p className="text-gray-700 mb-3">
+                  <strong>{scenesWithoutContent.length}</strong> scene{scenesWithoutContent.length > 1 ? 's are' : ' is'} missing content or images:
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-semibold text-yellow-900">
+                    Scene {scenesWithoutContent.map(s => s.sceneNumber).join(', ')}
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Each scene must have either a description or at least one image.
+                  </p>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  What would you like to do?
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleStayAndFixScenes}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-md flex items-center justify-center gap-2"
+              >
+                <Edit className="w-5 h-5" />
+                Stay & Fix Scenes
+              </button>
+              <button
+                onClick={handleDeleteEmptyScenesAndSubmit}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold shadow-md flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-5 h-5" />
+                Delete Empty Scenes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Confirmation Dialog */}
+      {showLeaveConfirmation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+            <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center">
+              <Info className="w-6 h-6 mr-2 text-yellow-500" />
+              Unsaved Changes
+            </h3>
+            <p className="text-gray-700 mb-6">
+              You have unsaved changes. Do you want to save your story before leaving?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelLeave}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+              >
+                Leave Without Saving
+              </button>
+              <button
+                onClick={async (e) => {
+                  setShowLeaveConfirmation(false);
+                  const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                  await handleSubmitWithValidation(fakeEvent);
+                }}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                Save & Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

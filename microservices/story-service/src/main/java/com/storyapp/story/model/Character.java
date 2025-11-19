@@ -23,6 +23,9 @@ public class Character {
     @Column(name = "actor_name")
     private String actorName;
 
+    @Column(name = "popularity")
+    private Integer popularity;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "character_images", joinColumns = @JoinColumn(name = "character_id"))
     @Column(name = "image_url")
@@ -94,5 +97,13 @@ public class Character {
 
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
+    }
+
+    public Integer getPopularity() {
+        return popularity;
+    }
+
+    public void setPopularity(Integer popularity) {
+        this.popularity = popularity;
     }
 }
