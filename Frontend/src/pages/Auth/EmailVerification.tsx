@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import authService from '../../api/auth.service';
 
 export default function EmailVerification() {
@@ -9,19 +9,7 @@ export default function EmailVerification() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    const token = searchParams.get('token');
-    
-    if (!token) {
-      setStatus('error');
-      setMessage('Invalid verification link');
-      return;
-    }
-
-    verifyEmail(token);
-  }, [searchParams]);
-
-  const verifyEmail = async (token: string) => {
+  const verifyEmail = useCallback(async (token: string) => {
     try {
       const response = await authService.verifyEmail(token);
       
@@ -37,11 +25,29 @@ export default function EmailVerification() {
         setStatus('error');
         setMessage(response.message || 'Verification failed');
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Email verification error:', err);
       setStatus('error');
       setMessage('Verification failed. The link may be expired or invalid.');
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    
+    if (!token) {
+      setTimeout(() => {
+        setStatus('error');
+        setMessage('Invalid verification link');
+      }, 0);
+      return;
+    }
+
+    // Wrap in timeout to avoid synchronous setState in effect
+    setTimeout(() => {
+      void verifyEmail(token);
+    }, 0);
+  }, [searchParams, verifyEmail]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex items-center justify-center p-4">
@@ -49,7 +55,7 @@ export default function EmailVerification() {
         {status === 'loading' && (
           <>
             <div className="flex justify-center mb-6">
-              <Loader className="w-16 h-16 text-purple-600 animate-spin" />
+              <Loader2 className="w-16 h-16 text-purple-600 animate-spin" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Verifying Email</h1>
             <p className="text-gray-600">Please wait while we verify your email address...</p>

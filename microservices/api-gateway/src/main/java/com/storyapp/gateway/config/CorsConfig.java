@@ -15,7 +15,7 @@ public class CorsConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.setAllowedOriginPatterns(Collections.singletonList("*"));
+        corsConfig.setAllowedOriginPatterns(Collections.singletonList("http://localhost:5173"));
         corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         corsConfig.setAllowedHeaders(Collections.singletonList("*"));
         corsConfig.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
