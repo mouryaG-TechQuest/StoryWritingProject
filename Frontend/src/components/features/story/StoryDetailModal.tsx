@@ -1,6 +1,5 @@
 import { X, Edit, Info, Users, BookOpen, Film, Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import SceneTimelineViewer from './SceneTimelineViewer';
 
 interface Character {
   id?: string;
@@ -977,7 +976,7 @@ export default function StoryDetailModal({
                             className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-amber-500 focus:outline-none bg-white"
                           >
                             <option value="">Select scene number...</option>
-                            {timeline.map((scene, idx) => (
+                            {timeline.map((_scene, idx) => (
                               <option key={idx} value={idx}>
                                 Scene {idx + 1}
                               </option>

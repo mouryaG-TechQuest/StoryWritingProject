@@ -1,7 +1,7 @@
-// Home Page Component
+import React from 'react';
 import './Home.css';
 
-export const Home = () => {
+export const Home: React.FC = () => {
   return (
     <div className="home">
       <h1>Welcome to Story Writing Project</h1>

@@ -1,7 +1,7 @@
-import { Plus, Trash2, Upload, X, Users, BookOpen, Info, Eye, Filter, SortAsc, ChevronDown, ChevronUp, Search, ChevronLeft, ChevronRight, Image as ImageIcon, EyeOff, Film, Edit } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import TimelineManager from './TimelineManager';
-import { getAllCharacterNames, getCharacterColor } from '../utils/characterColors.tsx';
+import { Plus, Trash2, Upload, X, Users, BookOpen, Info, Eye, Filter, SortAsc, ChevronDown, ChevronUp, Search, ChevronLeft, ChevronRight, EyeOff, Film, Edit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import TimelineManager from '../../features/timeline/TimelineManager';
+import { getAllCharacterNames, getCharacterColor } from '../../../utils/characterColors';
 
 interface Character {
   id?: string;
@@ -38,6 +38,8 @@ interface TimelineEntry {
   description: string;
   characters: string[];
   imageUrls: string[];
+  videoUrls?: string[];
+  audioUrls?: string[];
   order: number;
 }
 
@@ -78,8 +80,6 @@ const StoryForm = ({
   const [castPage, setCastPage] = useState(0);
   const [customScenesPerPage, setCustomScenesPerPage] = useState(10);
   const [readerScenesPerPage, setReaderScenesPerPage] = useState(10);
-  const [searchPageNumber, setSearchPageNumber] = useState('');
-  const [searchSceneNumber, setSearchSceneNumber] = useState('');
   const [sceneSearchQuery, setSceneSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [screenSize, setScreenSize] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -271,11 +271,11 @@ const StoryForm = ({
     return chars;
   };
 
-  const updateCharacter = (index: number, field: keyof Character, value: string) => {
+  const updateCharacter = (index: number, field: keyof Character, value: any) => {
     const newCharacters = [...formData.characters];
     const oldCharacterName = newCharacters[index].name;
     
-    newCharacters[index][field] = value;
+    (newCharacters[index] as any)[field] = value;
     
     // If the character name is being changed, update it in the timeline too
     if (field === 'name' && oldCharacterName && value !== oldCharacterName) {
@@ -498,30 +498,6 @@ const StoryForm = ({
     }
   };
 
-  const generateFullStory = () => {
-    if (timeline.length === 0) return formData.content;
-    
-    const allCharNames = getAllCharacterNames(formData.characters);
-    
-    return timeline
-      .sort((a, b) => a.order - b.order)
-      .map((entry, idx) => {
-        const castList = entry.characters.length > 0 
-          ? `\n[Cast: ${entry.characters.map(name => `***${name}***`).join(', ')}]` 
-          : '';
-        
-        // Format character names in description as bold italic
-        let description = entry.description;
-        entry.characters.forEach(charName => {
-          const regex = new RegExp(`\\b${charName}\\b`, 'gi');
-          description = description.replace(regex, `***${charName}***`);
-        });
-        
-        return `${idx + 1}. ${entry.event}${castList}\n${description}`;
-      })
-      .join('\n\n');
-  };
-
   // Validate scenes have content or images
   const validateScenes = () => {
     if (!timeline || timeline.length === 0) return [];
@@ -530,20 +506,13 @@ const StoryForm = ({
       index: idx,
       sceneNumber: idx + 1,
       id: entry.id,
-      hasContent: entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
+      hasContent: entry.description.trim().length > 0 || 
+                  (entry.imageUrls && entry.imageUrls.length > 0) ||
+                  (entry.videoUrls && entry.videoUrls.length > 0) ||
+                  (entry.audioUrls && entry.audioUrls.length > 0)
     })).filter(scene => !scene.hasContent);
     
     return invalidScenes;
-  };
-
-  const handleDeleteInvalidScenes = () => {
-    if (!timeline) return;
-    
-    const validScenes = timeline.filter(entry => 
-      entry.description.trim().length > 0 || (entry.imageUrls && entry.imageUrls.length > 0)
-    );
-    setTimeline(validScenes);
-    setFormData({ ...formData, timelineJson: JSON.stringify(validScenes) });
   };
 
   const scenesWithoutContent = validateScenes();
@@ -634,50 +603,6 @@ const StoryForm = ({
     }
   };
 
-  const renderFormattedStory = (text: string) => {
-    if (!text) return 'No content yet. Add timeline entries or write content in Story Details.';
-    
-    const allCharNames = getAllCharacterNames(formData.characters);
-    if (allCharNames.length === 0) return text;
-    
-    const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
-    
-    // Match ***name*** pattern for formatted character names
-    const pattern = allCharNames
-      .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|');
-    const regex = new RegExp(`\\*\\*\\*(${pattern})\\*\\*\\*`, 'gi');
-    
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
-      }
-      
-      const matchedName = match[1];
-      const normalizedName = allCharNames.find(n => n.toLowerCase() === matchedName.toLowerCase()) || matchedName;
-      const color = getCharacterColor(normalizedName, allCharNames);
-      parts.push(
-        <span
-          key={`${match.index}-${matchedName}`}
-          className={`font-bold italic ${color.text} px-1 rounded`}
-          style={{ backgroundColor: color.hex ? `${color.hex}15` : 'transparent' }}
-        >
-          {matchedName}
-        </span>
-      );
-      
-      lastIndex = match.index + match[0].length;
-    }
-    
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-    
-    return parts.length > 0 ? <>{parts}</> : text;
-  };
-
   const tabs = [
     { id: 'details', label: 'Story Details', icon: Info, color: 'blue' },
     { id: 'characters', label: 'Characters', icon: Users, color: 'purple', count: formData.characters.length },
@@ -721,11 +646,11 @@ const StoryForm = ({
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span className="hidden xs:inline">{tab.label}</span>
                 <span className="xs:hidden">{tab.label.split(' ')[0]}</span>
-                {tab.count !== undefined && (
+                {(tab as any).count !== undefined && (
                   <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-bold ${
                     isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-700'
                   }`}>
-                    {tab.count}
+                    {(tab as any).count}
                   </span>
                 )}
               </button>
@@ -1614,7 +1539,7 @@ const StoryForm = ({
                           {(() => {
                             const query = sceneSearchQuery.trim().toLowerCase();
                             const numericValue = parseInt(sceneSearchQuery.trim());
-                            const suggestions: JSX.Element[] = [];
+                            const suggestions: React.JSX.Element[] = [];
 
                             // Page number suggestion
                             if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= totalPreviewPages) {
@@ -1802,7 +1727,7 @@ const StoryForm = ({
                                 {/* Writer Mode: Inline Character Badges */}
                                 {entry.characters.length > 0 && (
                                   <div className="flex flex-wrap gap-1 items-center">
-                                    {entry.characters.map((charName, cIdx) => {
+                                    {entry.characters.map((charName: string, cIdx: number) => {
                                       const color = getCharacterColor(charName, allCharNames);
                                       return (
                                         <span
@@ -1831,12 +1756,12 @@ const StoryForm = ({
                                 (() => {
                                   // Split description into paragraphs for better readability
                                   const paragraphs = entry.description.split(/\n\n+/);
-                                  return paragraphs.map((paragraph, pIdx) => (
+                                  return paragraphs.map((paragraph: string, pIdx: number) => (
                                     <p key={pIdx} className={!writerMode && pIdx > 0 ? "indent-8 mt-4" : pIdx > 0 ? "mt-4" : writerMode ? "" : "indent-8"}>
-                                      {paragraph.split(new RegExp(`\\b(${entry.characters.join('|')})\\b`, 'gi')).map((part, i) => {
-                                        const isCharacter = entry.characters.some(c => c.toLowerCase() === part.toLowerCase());
+                                      {paragraph.split(new RegExp(`\\b(${entry.characters.join('|')})\\b`, 'gi')).map((part: string, i: number) => {
+                                        const isCharacter = entry.characters.some((c: string) => c.toLowerCase() === part.toLowerCase());
                                         if (isCharacter && part.trim()) {
-                                          const matchedChar = entry.characters.find(c => c.toLowerCase() === part.toLowerCase()) || part;
+                                          const matchedChar = entry.characters.find((c: string) => c.toLowerCase() === part.toLowerCase()) || part;
                                           const color = getCharacterColor(matchedChar, allCharNames);
                                           return (
                                             <span
@@ -1868,7 +1793,7 @@ const StoryForm = ({
                                   ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2"
                                   : "grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl"
                                 }>
-                                  {entry.imageUrls.map((url, imgIdx) => (
+                                  {entry.imageUrls.map((url: string, imgIdx: number) => (
                                     <div key={imgIdx} className="relative group bg-gray-100 rounded-lg overflow-hidden">
                                       <img
                                         src={url.startsWith('http') ? url : `http://localhost:8080${url}`}
@@ -2090,7 +2015,7 @@ const StoryForm = ({
                 Leave Without Saving
               </button>
               <button
-                onClick={async (e) => {
+                onClick={async () => {
                   setShowLeaveConfirmation(false);
                   const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
                   await handleSubmitWithValidation(fakeEvent);

@@ -1,6 +1,5 @@
 package com.storyapp.user.controller;
 
-import com.storyapp.user.model.User;
 import com.storyapp.user.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

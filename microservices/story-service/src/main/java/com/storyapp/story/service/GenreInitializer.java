@@ -41,8 +41,11 @@ public class GenreInitializer implements CommandLineRunner {
                 new Genre("Superhero", "Heroes with extraordinary powers"),
                 new Genre("Supernatural", "Stories with paranormal elements")
             );
-            genreRepository.saveAll(genres);
-            System.out.println("Initialized " + genres.size() + " genres");
+            
+            if (!genres.isEmpty()) {
+                genreRepository.saveAll(genres);
+                System.out.println("Initialized " + genres.size() + " genres");
+            }
         }
     }
 }

@@ -1,6 +1,10 @@
-// Sidebar Layout Component
+import React from 'react';
 
-export const Sidebar = ({ isOpen = true }) => {
+interface SidebarProps {
+  isOpen?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       <nav className="sidebar-nav">

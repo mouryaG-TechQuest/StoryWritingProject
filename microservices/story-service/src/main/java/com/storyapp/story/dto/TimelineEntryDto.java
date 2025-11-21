@@ -8,6 +8,8 @@ public class TimelineEntryDto {
     private String description;
     private List<String> characters;
     private List<String> imageUrls;
+    private List<String> videoUrls;
+    private List<String> audioUrls;
     private Integer order;
 
     public String getId() { return id; }
@@ -24,6 +26,12 @@ public class TimelineEntryDto {
 
     public List<String> getImageUrls() { return imageUrls; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+
+    public List<String> getVideoUrls() { return videoUrls; }
+    public void setVideoUrls(List<String> videoUrls) { this.videoUrls = videoUrls; }
+
+    public List<String> getAudioUrls() { return audioUrls; }
+    public void setAudioUrls(List<String> audioUrls) { this.audioUrls = audioUrls; }
 
     public Integer getOrder() { return order; }
     public void setOrder(Integer order) { this.order = order; }

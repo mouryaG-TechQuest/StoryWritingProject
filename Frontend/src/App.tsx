@@ -3,14 +3,13 @@ import { AlertCircle } from 'lucide-react';
 import './App.css';
 import Header from './components/layout/Header.tsx';
 import AuthPage from './pages/Auth/Auth.tsx';
-import StoryForm from './components/StoryForm.tsx';
-import StoryCard from './components/StoryCard.tsx';
-import StoryDetailModal from './components/StoryDetailModal.tsx';
-import StoryViewToggle from './components/StoryViewToggle.tsx';
-import EmptyState from './components/EmptyState.tsx';
+import StoryForm from './components/features/story/StoryForm.tsx';
+import StoryCard from './components/features/story/StoryCard.tsx';
+import StoryDetailModal from './components/features/story/StoryDetailModal.tsx';
+import StoryViewToggle from './components/features/story/StoryViewToggle.tsx';
+import EmptyState from './components/common/EmptyState.tsx';
 import LoadingSpinner from './components/common/Loader.tsx';
-import SearchBar from './components/SearchBar.tsx';
-import Pagination from './components/Pagination.tsx';
+import SearchBar from './components/common/SearchBar.tsx';
 import Favorites from './pages/Favorites/Favorites.tsx';
 import Profile from './pages/Profile/Profile.tsx';
 import Settings from './pages/Settings/Settings.tsx';
@@ -113,7 +112,7 @@ const App = () => {
     const username = localStorage.getItem('username');
     
     // Fetch genres regardless of login status (public data)
-    fetchGenres(token || '');
+    fetchGenres();
     
     if (token && username) {
       setUser({ username, token });
@@ -121,7 +120,7 @@ const App = () => {
     }
   }, []);
 
-  const fetchGenres = async (token: string) => {
+  const fetchGenres = async () => {
     try {
       // Genre endpoint is public, no auth needed
       const response = await fetch(`${API_BASE}/stories/genres`);
@@ -233,7 +232,7 @@ const App = () => {
     }
   };
 
-  const handleEditStory = (story: Story, sceneIndex?: number) => {
+  const handleEditStory = (story: Story, _sceneIndex?: number) => {
     // Close detail modal if open
     setDetailStory(null);
     
@@ -567,7 +566,7 @@ const App = () => {
                 ) : filteredAndSortedStories.length > 0 ? (
                   <>
                     <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                      {displayedStories.map((story, index) => {
+                      {displayedStories.map((story) => {
                         return (
                           <StoryCard
                             key={story.id}

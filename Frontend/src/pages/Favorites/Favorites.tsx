@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Heart, ArrowLeft, Search, SlidersHorizontal, Filter, X, ChevronDown } from 'lucide-react';
-import StoryCard from '../../components/StoryCard';
-import StoryDetailModal from '../../components/StoryDetailModal';
+import StoryCard from '../../components/features/story/StoryCard';
+import StoryDetailModal from '../../components/features/story/StoryDetailModal';
 
 const API_BASE = '/api';
 
@@ -587,8 +587,6 @@ export default function FavoritesPage({ onNavigate, hideBackButton = false }: Fa
         <StoryDetailModal 
           story={detailStory}
           onClose={() => setDetailStory(null)}
-          onToggleLike={handleToggleLike}
-          onToggleFavorite={handleToggleFavorite}
         />
       )}
     </div>

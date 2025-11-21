@@ -7,6 +7,7 @@ import com.storyapp.story.dto.CommentResponse;
 import com.storyapp.story.dto.GenreResponse;
 import com.storyapp.story.service.StoryService;
 import com.storyapp.story.service.ImageStorageService;
+import com.storyapp.story.service.MediaStorageService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,10 +27,12 @@ public class StoryController {
 
     private final StoryService storyService;
     private final ImageStorageService imageStorageService;
+    private final MediaStorageService mediaStorageService;
 
-    public StoryController(StoryService storyService, ImageStorageService imageStorageService) {
+    public StoryController(StoryService storyService, ImageStorageService imageStorageService, MediaStorageService mediaStorageService) {
         this.storyService = storyService;
         this.imageStorageService = imageStorageService;
+        this.mediaStorageService = mediaStorageService;
     }
 
     @PostMapping
@@ -243,5 +246,27 @@ public class StoryController {
             storyService.trackWatchTime(id, username, watchTime);
         }
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(value = "/upload-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadMedia(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "type", defaultValue = "video") String type) {
+        try {
+            List<String> urls;
+            
+            if ("audio".equalsIgnoreCase(type)) {
+                urls = mediaStorageService.storeAudio(files);
+            } else {
+                urls = mediaStorageService.storeVideos(files);
+            }
+            
+            return ResponseEntity.ok(urls);
+            
+        } catch (IOException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }

@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, Trash2, Upload, X, ChevronDown, ChevronUp, Users, Image as ImageIcon, Search, Edit2, Check, XCircle, ChevronLeft, ChevronRight, Film, Eye, EyeOff } from 'lucide-react';
-import { getCharacterColor, getAllCharacterNames } from '../utils/characterColors.tsx';
+import { Plus, Trash2, Upload, X, ChevronDown, ChevronUp, Users, Image as ImageIcon, Search, Edit2, Check, XCircle, ChevronLeft, ChevronRight, Film, Eye, EyeOff, Music, Video } from 'lucide-react';
+import { getCharacterColor, getAllCharacterNames } from '../../../utils/characterColors';
 
 interface Character {
   id?: string;
@@ -17,6 +17,8 @@ interface TimelineEntry {
   description: string;
   characters: string[]; // character names
   imageUrls: string[];
+  videoUrls?: string[];
+  audioUrls?: string[];
   order: number;
 }
 
@@ -32,6 +34,8 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
   const [showCharacters, setShowCharacters] = useState(false);
   const [showNewCharacterForm, setShowNewCharacterForm] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState<string | null>(null);
+  const [uploadingVideos, setUploadingVideos] = useState<string | null>(null);
+  const [uploadingAudio, setUploadingAudio] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSceneIndex, setActiveSceneIndex] = useState<number | null>(null);
   const [editingSceneNumber, setEditingSceneNumber] = useState<string | null>(null);
@@ -45,17 +49,10 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
   const [hiddenScenes, setHiddenScenes] = useState<Set<string>>(new Set());
   const [manuallySetActive, setManuallySetActive] = useState(false);
   const [sceneVisibilityFilter, setSceneVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentScenePage, setCurrentScenePage] = useState(0);
   const [scenesPerPageList, setScenesPerPageList] = useState(10);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewWriterMode, setPreviewWriterMode] = useState(true);
-  const [previewPage, setPreviewPage] = useState(0);
-  const [previewScenesPerPage, setPreviewScenesPerPage] = useState(10);
-  const [searchPageNumber, setSearchPageNumber] = useState('');
-  const [searchSceneNumber, setSearchSceneNumber] = useState('');
-  const MIN_PREVIEW_SCENES = 5;
-  const MAX_PREVIEW_SCENES = 10; // Maximum 10 scenes
   
   // Dynamic scenes per page based on screen width
   const [scenesPerPage, setScenesPerPage] = useState(10);
@@ -216,6 +213,8 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
       description: '',
       characters: [],
       imageUrls: [],
+      videoUrls: [],
+      audioUrls: [],
       order: timeline.length
     };
     onChange([...timeline, newEntry]);
@@ -283,7 +282,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
     setNewSceneNumber('');
   };
 
-  const confirmSceneNumberChange = (entryId: string, currentIndex: number) => {
+  const confirmSceneNumberChange = (_entryId: string, currentIndex: number) => {
     const targetSceneNumber = parseInt(newSceneNumber);
     
     if (isNaN(targetSceneNumber) || targetSceneNumber < 1 || targetSceneNumber > timeline.length) {
@@ -496,6 +495,51 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
     }
   };
 
+  const handleMediaUpload = async (entryId: string, e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'audio') => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    if (type === 'video') setUploadingVideos(entryId);
+    else setUploadingAudio(entryId);
+
+    const files = Array.from(e.target.files);
+    const formDataUpload = new FormData();
+    files.forEach(file => formDataUpload.append('files', file));
+    formDataUpload.append('type', type);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/stories/upload-media', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formDataUpload
+      });
+
+      if (response.ok) {
+        const urls: string[] = await response.json();
+        const entry = timeline.find(e => e.id === entryId);
+        if (entry) {
+          const field = type === 'video' ? 'videoUrls' : 'audioUrls';
+          const currentUrls = entry[field] || [];
+          updateEntry(entryId, field, [...currentUrls, ...urls]);
+        }
+      }
+    } catch (err) {
+      console.error(`${type} upload failed`, err);
+    } finally {
+      if (type === 'video') setUploadingVideos(null);
+      else setUploadingAudio(null);
+    }
+  };
+
+  const removeMedia = (entryId: string, mediaIndex: number, type: 'video' | 'audio') => {
+    const entry = timeline.find(e => e.id === entryId);
+    if (entry) {
+      const field = type === 'video' ? 'videoUrls' : 'audioUrls';
+      const currentUrls = entry[field] || [];
+      updateEntry(entryId, field, currentUrls.filter((_, i) => i !== mediaIndex));
+    }
+  };
+
   const toggleCharacter = (entryId: string, characterName: string) => {
     const entry = timeline.find(e => e.id === entryId);
     if (!entry) return;
@@ -514,27 +558,6 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
       setNewCharacter({ name: '', description: '', role: '', actorName: '', popularity: undefined });
       setShowNewCharacterForm(null);
     }
-  };
-
-  const generateStoryFromTimeline = () => {
-    return timeline
-      .sort((a, b) => a.order - b.order)
-      .filter(entry => !hiddenScenes.has(entry.id)) // Exclude hidden scenes
-      .map((entry, idx) => {
-        const castList = entry.characters.length > 0 
-          ? `\n[Cast: ${entry.characters.map(name => `***${name}***`).join(', ')}]` 
-          : '';
-        
-        // Format character names in description as bold italic
-        let description = entry.description;
-        entry.characters.forEach(charName => {
-          const regex = new RegExp(`\\b${charName}\\b`, 'gi');
-          description = description.replace(regex, `***${charName}***`);
-        });
-        
-        return `**${idx + 1}. ${entry.event || `Scene ${idx + 1}`}**${castList}\n${description}`;
-      })
-      .join('\n\n');
   };
 
   return (
@@ -727,7 +750,8 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                     </div>
                   </div>
                 );
-              })}
+              })
+            }
             </div>
           </div>
 
@@ -944,12 +968,12 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
             </button>
           </div>
         ) : (
-          paginatedScenes.map((entry, filteredIndex) => {
+          paginatedScenes.map((entry) => {
             const originalIndex = timeline.findIndex(e => e.id === entry.id);
             return (
             <div 
               key={entry.id} 
-              ref={el => sceneRefs.current[entry.id] = el}
+              ref={el => { sceneRefs.current[entry.id] = el; }}
               className={`border-2 rounded-lg shadow-sm transition-all ${
                 hiddenScenes.has(entry.id) 
                   ? 'border-gray-400 bg-gray-100 opacity-60' 
@@ -965,7 +989,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                 <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={() => toggleHideScene(entry.id, new MouseEvent('click') as any)}
+                    onClick={() => toggleHideScene(entry.id, new MouseEvent('click') as unknown as React.MouseEvent)}
                     className={`${hiddenScenes.has(entry.id) ? 'bg-blue-600 ring-2 ring-blue-300' : 'bg-gray-700'} text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all`}
                     title={hiddenScenes.has(entry.id) ? "Unhide from story" : "Hide from story"}
                   >
@@ -1231,7 +1255,7 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                               className="w-full h-16 sm:h-20 object-cover rounded border border-gray-300 group-hover:border-purple-400 transition" 
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10"%3EError%3C/text%3E%3C/svg%3E';
+                                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E';
                               }}
                             />
                             <button
@@ -1246,378 +1270,109 @@ const TimelineManager = ({ timeline, onChange, availableCharacters, onAddCharact
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </div>
-            );
-          })
-        )}
-      </div>
 
-      {/* Bottom Pagination */}
-      {totalScenePages > 1 && filteredTimeline.length > 0 && (
-        <div className="flex items-center justify-center space-x-2 pt-2">
-          <button
-            type="button"
-            onClick={() => goToSceneListPage(0)}
-            disabled={currentScenePage === 0}
-            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-          >
-            First
-          </button>
-          <button
-            type="button"
-            onClick={() => goToSceneListPage(currentScenePage - 1)}
-            disabled={currentScenePage === 0}
-            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition flex items-center"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </button>
-          <div className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium">
-            {currentScenePage + 1} / {totalScenePages}
-          </div>
-          <button
-            type="button"
-            onClick={() => goToSceneListPage(currentScenePage + 1)}
-            disabled={currentScenePage === totalScenePages - 1}
-            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition flex items-center"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => goToSceneListPage(totalScenePages - 1)}
-            disabled={currentScenePage === totalScenePages - 1}
-            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-          >
-            Last
-          </button>
-        </div>
-      )}
-
-      {/* Generate Story Preview - Enhanced Modal with Book-like Layout */}
-      {showPreview && timeline.length > 0 && (() => {
-        const visibleScenes = filteredTimeline.filter(e => !hiddenScenes.has(e.id)).sort((a, b) => a.order - b.order);
-        const totalPages = Math.ceil(visibleScenes.length / previewScenesPerPage);
-        const paginatedScenes = visibleScenes.slice(
-          previewPage * previewScenesPerPage,
-          (previewPage + 1) * previewScenesPerPage
-        );
-        
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowPreview(false)}>
-            <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
-              <div className="p-4 sm:p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900">📜 Story Preview</h3>
-                    <p className="text-sm text-gray-600 mt-1">{visibleScenes.length} visible scenes</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewWriterMode(!previewWriterMode);
-                        setPreviewPage(0);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                        previewWriterMode
-                          ? 'bg-purple-600 text-white hover:bg-purple-700'
-                          : 'bg-gray-600 text-white hover:bg-gray-700'
-                      }`}
-                    >
-                      {previewWriterMode ? 'Writer' : 'Reader'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowPreview(false)}
-                      className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition"
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Scenes per page control */}
-                <div className="flex items-center space-x-3 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                  <label className="text-sm font-semibold text-purple-900">Scenes per page:</label>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewScenesPerPage(Math.max(MIN_PREVIEW_SCENES, previewScenesPerPage - 1));
-                        setPreviewPage(0);
-                      }}
-                      className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
-                    >
-                      -
-                    </button>
-                    <span className="px-3 py-1 bg-white border border-purple-300 rounded font-bold text-purple-900 min-w-[40px] text-center">
-                      {previewScenesPerPage}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewScenesPerPage(Math.min(
-                          previewWriterMode ? MAX_PREVIEW_SCENES_WRITER : MAX_PREVIEW_SCENES_READER,
-                          previewScenesPerPage + 1
-                        ));
-                        setPreviewPage(0);
-                      }}
-                      className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm font-bold"
-                    >
-                      +
-                    </button>
-                    <span className="text-xs text-purple-600">
-                      (range: {MIN_PREVIEW_SCENES}-{previewWriterMode ? MAX_PREVIEW_SCENES_WRITER : MAX_PREVIEW_SCENES_READER})
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Content - Book-like Layout */}
-              <div className="overflow-y-auto p-4 sm:p-8 flex-1">
-                <div className={`rounded-lg shadow-lg p-6 sm:p-10 ${
-                  previewWriterMode ? 'bg-white' : 'bg-amber-50'
-                }`}>
-                  <div className="max-w-4xl mx-auto space-y-6">
-                    {paginatedScenes.map((entry, idx) => {
-                      const actualSceneNumber = previewPage * previewScenesPerPage + idx + 1;
-                      const allCharNames = entry.characters || [];
-                      
-                      return (
-                        <div key={entry.id} className={previewWriterMode ? "mb-8 last:mb-0" : "mb-6 last:mb-0"}>
-                          {/* Scene Header - Only in Writer Mode */}
-                          {previewWriterMode && (
-                            <div className="mb-3 flex items-center justify-between border-b border-gray-200 pb-2">
-                              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                                Scene {actualSceneNumber}: {entry.event || 'Untitled'}
-                              </h4>
-                              {entry.characters && entry.characters.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {entry.characters.map((charName, cIdx) => (
-                                    <span
-                                      key={cIdx}
-                                      className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold border border-purple-300"
-                                    >
-                                      {charName}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Scene Description */}
-                          <div className={previewWriterMode
-                            ? "text-lg leading-loose text-gray-900 mb-4 font-serif whitespace-pre-wrap"
-                            : "text-justify text-lg leading-relaxed text-gray-800 mb-4 font-serif whitespace-pre-wrap"
-                          } style={{
-                            wordWrap: 'break-word',
-                            overflowWrap: 'break-word',
-                            wordBreak: 'break-word'
-                          }}>
-                            {entry.description ? (
-                              (() => {
-                                const paragraphs = entry.description.split(/\n\n+/);
-                                return paragraphs.map((paragraph, pIdx) => (
-                                  <p key={pIdx} className={!previewWriterMode && pIdx > 0 ? "indent-8 mt-4" : pIdx > 0 ? "mt-4" : previewWriterMode ? "" : "indent-8"}>
-                                    {entry.characters && entry.characters.length > 0 ? (
-                                      paragraph.split(new RegExp(`\\b(${entry.characters.join('|')})\\b`, 'gi')).map((part, i) => {
-                                        const isCharacter = entry.characters?.some(c => c.toLowerCase() === part.toLowerCase());
-                                        if (isCharacter && part.trim()) {
-                                          return (
-                                            <span
-                                              key={i}
-                                              className="font-bold"
-                                              style={{ color: '#7c3aed' }}
-                                            >
-                                              {part}
-                                            </span>
-                                          );
-                                        }
-                                        return <span key={i}>{part}</span>;
-                                      })
-                                    ) : paragraph}
-                                  </p>
-                                ));
-                              })()
-                            ) : (
-                              <span className="text-gray-400 italic text-base">No description</span>
-                            )}
-                          </div>
-                          
-                          {/* Scene Images - Only in Writer Mode */}
-                          {previewWriterMode && entry.imageUrls && entry.imageUrls.length > 0 && (
-                            <div className="mb-4 pl-4 border-l-4 border-gray-200">
-                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                                {entry.imageUrls.map((url, imgIdx) => (
-                                  <img
-                                    key={imgIdx}
-                                    src={`http://localhost:8080${url}`}
-                                    alt={`Scene ${actualSceneNumber} - Image ${imgIdx + 1}`}
-                                    className="w-full h-16 sm:h-20 object-cover rounded border border-gray-300 hover:border-purple-500 transition cursor-pointer shadow-sm hover:shadow-md"
-                                    onClick={() => window.open(`http://localhost:8080${url}`, '_blank')}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Footer with Pagination and Search */}
-              <div className="p-4 border-t border-gray-200">
-                <div className="bg-gray-50 px-4 py-3 rounded-lg border border-gray-300 mb-3">
-                  {/* Top Row: Scene count and page navigation */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm text-gray-600">
-                      Showing scenes <span className="font-semibold">{previewPage * previewScenesPerPage + 1}</span> to{' '}
-                      <span className="font-semibold">{Math.min((previewPage + 1) * previewScenesPerPage, visibleScenes.length)}</span> of{' '}
-                      <span className="font-semibold">{visibleScenes.length}</span>
+                  {/* Video Upload */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center">
+                      <Video className="w-4 h-4 mr-1" />
+                      Scene Videos
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <label className="cursor-pointer bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 flex items-center text-sm">
+                        <Upload className="w-3 h-3 mr-1" />
+                        Upload Video
+                        <input
+                          type="file"
+                          multiple
+                          accept="video/*"
+                          onChange={(e) => handleMediaUpload(entry.id, e, 'video')}
+                          className="hidden"
+                          disabled={uploadingVideos === entry.id}
+                        />
+                      </label>
+                      {uploadingVideos === entry.id && <span className="text-xs text-gray-600">Uploading...</span>}
                     </div>
-                    {totalPages > 1 && (
-                      <div className="flex items-center space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage(Math.max(0, previewPage - 1))}
-                          disabled={previewPage === 0}
-                          className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-                        >
-                          Previous
-                        </button>
-                        <span className="text-sm text-gray-600 px-2">
-                          {previewPage + 1} / {totalPages}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage(Math.min(totalPages - 1, previewPage + 1))}
-                          disabled={previewPage === totalPages - 1}
-                          className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-                        >
-                          Next
-                        </button>
+                    {entry.videoUrls && entry.videoUrls.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {entry.videoUrls.map((url, idx) => (
+                          <div key={idx} className="relative group">
+                            <video 
+                              src={url.startsWith('http') ? url : `http://localhost:8080${url}`} 
+                              controls
+                              className="w-full h-32 object-cover rounded border border-gray-300" 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeMedia(entry.id, idx, 'video')}
+                              className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition z-10"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                  
-                  {/* Bottom Row: Search Controls */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {/* Search by Page Number */}
-                    <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                      <Search className="w-4 h-4 text-blue-600" />
-                      <input
-                        type="number"
-                        placeholder="Go to page..."
-                        value={searchPageNumber}
-                        onChange={(e) => setSearchPageNumber(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            const pageNum = parseInt(searchPageNumber);
-                            if (pageNum >= 1 && pageNum <= totalPages) {
-                              setPreviewPage(pageNum - 1);
-                              setSearchPageNumber('');
-                            } else {
-                              alert(`Please enter a page number between 1 and ${totalPages}`);
-                            }
-                          }
-                        }}
-                        className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        min="1"
-                        max={totalPages}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const pageNum = parseInt(searchPageNumber);
-                          if (pageNum >= 1 && pageNum <= totalPages) {
-                            setPreviewPage(pageNum - 1);
-                            setSearchPageNumber('');
-                          } else {
-                            alert(`Please enter a page number between 1 and ${totalPages}`);
-                          }
-                        }}
-                        className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-semibold"
-                      >
-                        Go
-                      </button>
+
+                  {/* Audio Upload */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center">
+                      <Music className="w-4 h-4 mr-1" />
+                      Scene Audio
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <label className="cursor-pointer bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 flex items-center text-sm">
+                        <Upload className="w-3 h-3 mr-1" />
+                        Upload Audio
+                        <input
+                          type="file"
+                          multiple
+                          accept="audio/*"
+                          onChange={(e) => handleMediaUpload(entry.id, e, 'audio')}
+                          className="hidden"
+                          disabled={uploadingAudio === entry.id}
+                        />
+                      </label>
+                      {uploadingAudio === entry.id && <span className="text-xs text-gray-600">Uploading...</span>}
                     </div>
-                    
-                    {/* Search by Scene Number */}
-                    <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                      <Search className="w-4 h-4 text-green-600" />
-                      <input
-                        type="number"
-                        placeholder="Go to scene..."
-                        value={searchSceneNumber}
-                        onChange={(e) => setSearchSceneNumber(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            const sceneNum = parseInt(searchSceneNumber);
-                            if (sceneNum >= 1 && sceneNum <= visibleScenes.length) {
-                              const targetPage = Math.floor((sceneNum - 1) / previewScenesPerPage);
-                              setPreviewPage(targetPage);
-                              setSearchSceneNumber('');
-                            } else {
-                              alert(`Please enter a scene number between 1 and ${visibleScenes.length}`);
-                            }
-                          }
-                        }}
-                        className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                        min="1"
-                        max={visibleScenes.length}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const sceneNum = parseInt(searchSceneNumber);
-                          if (sceneNum >= 1 && sceneNum <= visibleScenes.length) {
-                            const targetPage = Math.floor((sceneNum - 1) / previewScenesPerPage);
-                            setPreviewPage(targetPage);
-                            setSearchSceneNumber('');
-                          } else {
-                            alert(`Please enter a scene number between 1 and ${visibleScenes.length}`);
-                          }
-                        }}
-                        className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-xs font-semibold"
-                      >
-                        Go
-                      </button>
-                    </div>
+                    {entry.audioUrls && entry.audioUrls.length > 0 && (
+                      <div className="space-y-2">
+                        {entry.audioUrls.map((url, idx) => (
+                          <div key={idx} className="relative group flex items-center bg-gray-50 p-2 rounded border border-gray-200">
+                            <audio 
+                              src={url.startsWith('http') ? url : `http://localhost:8080${url}`} 
+                              controls
+                              className="w-full h-8" 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeMedia(entry.id, idx, 'audio')}
+                              className="ml-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 opacity-0 group-hover:opacity-100 transition"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const story = generateStoryFromTimeline();
-                      navigator.clipboard.writeText(story);
-                      alert('Story copied to clipboard!');
-                    }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
-                  >
-                    Copy Story
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-        );
-      })()}
+          );
+        })
+      )}
+      </div>
+
+      {/* Generate Story Preview - Enhanced Modal with Book-like Layout */}
+      {showPreview && timeline.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowPreview(false)}>
+            <div className="bg-white p-4 rounded">
+                <h2>Preview Placeholder</h2>
+                <button onClick={() => setShowPreview(false)}>Close</button>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

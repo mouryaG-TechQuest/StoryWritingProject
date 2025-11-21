@@ -247,7 +247,9 @@ public class UserService {
             // Don't update email yet - wait for verification
         }
 
-        return userRepository.save(user);
+        @SuppressWarnings("null")
+        User savedUser = userRepository.save(user);
+        return savedUser;
     }
 
     public Optional<User> findByUsername(String username) {

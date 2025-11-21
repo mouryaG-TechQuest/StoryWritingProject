@@ -12,8 +12,12 @@ import com.storyapp.story.model.StoryView;
 import com.storyapp.story.exception.ResourceNotFoundException;
 import com.storyapp.story.exception.UnauthorizedException;
 import com.storyapp.story.model.Story;
+import com.storyapp.story.model.Scene;
+import com.storyapp.story.model.SceneMedia;
 import com.storyapp.story.repository.CharacterRepository;
 import com.storyapp.story.repository.StoryRepository;
+import com.storyapp.story.repository.SceneRepository;
+import com.storyapp.story.repository.SceneMediaRepository;
 import com.storyapp.story.repository.LikeRepository;
 import com.storyapp.story.repository.FavoriteRepository;
 import com.storyapp.story.repository.CommentRepository;
@@ -21,11 +25,13 @@ import com.storyapp.story.repository.GenreRepository;
 import com.storyapp.story.repository.StoryGenreRepository;
 import com.storyapp.story.repository.StoryViewRepository;
 import com.storyapp.story.client.UserServiceClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -34,6 +40,8 @@ import java.util.stream.Collectors;
 public class StoryService {
     private final StoryRepository storyRepository;
     private final CharacterRepository characterRepository;
+    private final SceneRepository sceneRepository;
+    private final SceneMediaRepository sceneMediaRepository;
     private final LikeRepository likeRepository;
     private final FavoriteRepository favoriteRepository;
     private final CommentRepository commentRepository;
@@ -41,14 +49,18 @@ public class StoryService {
     private final StoryGenreRepository storyGenreRepository;
     private final StoryViewRepository storyViewRepository;
     private final UserServiceClient userServiceClient;
+    private final ObjectMapper objectMapper;
 
     public StoryService(StoryRepository storyRepository, CharacterRepository characterRepository, 
+                        SceneRepository sceneRepository, SceneMediaRepository sceneMediaRepository,
                         LikeRepository likeRepository, FavoriteRepository favoriteRepository,
                         CommentRepository commentRepository, GenreRepository genreRepository,
                         StoryGenreRepository storyGenreRepository, StoryViewRepository storyViewRepository,
-                        UserServiceClient userServiceClient) {
+                        UserServiceClient userServiceClient, ObjectMapper objectMapper) {
         this.storyRepository = storyRepository;
         this.characterRepository = characterRepository;
+        this.sceneRepository = sceneRepository;
+        this.sceneMediaRepository = sceneMediaRepository;
         this.likeRepository = likeRepository;
         this.favoriteRepository = favoriteRepository;
         this.commentRepository = commentRepository;
@@ -56,6 +68,7 @@ public class StoryService {
         this.storyGenreRepository = storyGenreRepository;
         this.storyViewRepository = storyViewRepository;
         this.userServiceClient = userServiceClient;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -81,6 +94,9 @@ public class StoryService {
         story.setStoryNumber(generateUniqueStoryNumber());
         
         Story saved = storyRepository.save(story);
+
+        // Sync scenes from JSON to entities
+        syncScenes(saved, request.getTimelineJson());
 
         if (request.getImageUrls() != null) {
             for (String url : request.getImageUrls()) {
@@ -221,6 +237,10 @@ public class StoryService {
         }
 
         Story updated = storyRepository.save(story);
+        
+        // Sync scenes from JSON to entities
+        syncScenes(updated, request.getTimelineJson());
+
         return convertToResponse(updated, username);
     }
 
@@ -288,6 +308,72 @@ public class StoryService {
         Story story = storyRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Story not found"));
         if (!story.getAuthorUsername().equals(username)) throw new UnauthorizedException("Unauthorized");
         storyRepository.delete(story);
+    }
+
+    private void syncScenes(Story story, String timelineJson) {
+        if (timelineJson == null || timelineJson.isEmpty()) return;
+
+        try {
+            TimelineEntryDto[] entries = objectMapper.readValue(timelineJson, TimelineEntryDto[].class);
+            
+            // Clear existing scenes for this story to avoid duplicates/orphans
+            List<Scene> existingScenes = sceneRepository.findByStoryId(story.getId());
+            sceneRepository.deleteAll(existingScenes);
+
+            for (TimelineEntryDto entry : entries) {
+                Scene scene = new Scene();
+                scene.setStory(story);
+                scene.setTitle(entry.getEvent());
+                scene.setDescription(entry.getDescription());
+                scene.setOrder(entry.getOrder());
+                
+                if (entry.getCharacters() != null) {
+                    scene.setCharacterNames(new ArrayList<>(entry.getCharacters()));
+                }
+
+                Scene savedScene = sceneRepository.save(scene);
+
+                // Handle Media
+                List<SceneMedia> mediaList = new ArrayList<>();
+                
+                if (entry.getImageUrls() != null) {
+                    for (String url : entry.getImageUrls()) {
+                        SceneMedia media = new SceneMedia();
+                        media.setScene(savedScene);
+                        media.setUrl(url);
+                        media.setType(SceneMedia.MediaType.IMAGE);
+                        mediaList.add(media);
+                    }
+                }
+                
+                if (entry.getVideoUrls() != null) {
+                    for (String url : entry.getVideoUrls()) {
+                        SceneMedia media = new SceneMedia();
+                        media.setScene(savedScene);
+                        media.setUrl(url);
+                        media.setType(SceneMedia.MediaType.VIDEO);
+                        mediaList.add(media);
+                    }
+                }
+                
+                if (entry.getAudioUrls() != null) {
+                    for (String url : entry.getAudioUrls()) {
+                        SceneMedia media = new SceneMedia();
+                        media.setScene(savedScene);
+                        media.setUrl(url);
+                        media.setType(SceneMedia.MediaType.AUDIO);
+                        mediaList.add(media);
+                    }
+                }
+                
+                if (!mediaList.isEmpty()) {
+                    sceneMediaRepository.saveAll(mediaList);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error syncing scenes: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private StoryResponse convertToResponse(Story story, String currentUsername) {

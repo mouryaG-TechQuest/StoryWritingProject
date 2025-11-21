@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { BookOpen, User, LogOut, Heart, Settings, HelpCircle, ShoppingCart, Crown, Home } from 'lucide-react';
 
+export type Page = 'home' | 'favorites' | 'profile' | 'settings' | 'support' | 'subscription' | 'cart' | 'logout';
+
 interface HeaderProps {
   user: {
     username: string;
     token: string;
   };
   onLogout: () => void;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: Page) => void;
 }
 
 const Header = ({ user, onLogout, onNavigate }: HeaderProps) => {

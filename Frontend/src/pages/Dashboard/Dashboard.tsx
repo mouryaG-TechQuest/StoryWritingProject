@@ -1,8 +1,8 @@
-// Dashboard Page Component
+import React from 'react';
 import './Dashboard.css';
-import { Card } from '../../components/widgets/Card';
+import { Card } from '../../components/common/Card';
 
-export const Dashboard = () => {
+export const Dashboard: React.FC = () => {
   return (
     <div className="dashboard">
       <h1>Dashboard</h1>

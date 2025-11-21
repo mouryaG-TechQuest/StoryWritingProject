@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Edit, ChevronLeft, ChevronRight, BookOpen, Users } from 'lucide-react';
-import { getCharacterColor, getAllCharacterNames } from '../utils/characterColors.tsx';
+import { getCharacterColor, getAllCharacterNames } from '../../../utils/characterColors';
 
 interface Character {
   id?: string;

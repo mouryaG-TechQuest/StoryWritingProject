@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Heart, Settings, ArrowLeft } from 'lucide-react';
-import StoryCard from '../../components/StoryCard';
-import StoryDetailModal from '../../components/StoryDetailModal';
-import SearchBar from '../../components/SearchBar';
-import EmptyState from '../../components/EmptyState';
+import StoryCard from '../../components/features/story/StoryCard';
+import StoryDetailModal from '../../components/features/story/StoryDetailModal';
+import SearchBar from '../../components/common/SearchBar';
+import EmptyState from '../../components/common/EmptyState';
 import Favorites from '../Favorites/Favorites';
 
 const API_BASE = '/api';

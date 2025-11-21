@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, BookOpen, Mail, CheckCircle } from 'lucide-react';
+import { AlertCircle, BookOpen, CheckCircle } from 'lucide-react';
 import authService from '../../api/auth.service.js';
 
 interface AuthPageProps {

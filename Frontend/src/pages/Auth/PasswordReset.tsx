@@ -23,8 +23,8 @@ export default function PasswordReset() {
       await authService.forgotPassword(email);
       setSuccess('Reset code sent to your email!');
       setStep('code');
-    } catch (err) {
-      setError('Failed to send reset code');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to send reset code');
     } finally {
       setLoading(false);
     }
@@ -54,8 +54,8 @@ export default function PasswordReset() {
       setTimeout(() => {
         navigate('/');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to reset password');
     } finally {
       setLoading(false);
     }

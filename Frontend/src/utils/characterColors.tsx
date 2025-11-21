@@ -47,7 +47,7 @@ export const renderFormattedText = (
 ) => {
   if (!text || characterNames.length === 0) return text;
   
-  const parts: (string | JSX.Element)[] = [];
+  const parts: (string | React.JSX.Element)[] = [];
   let lastIndex = 0;
   
   // Create a regex that matches any character name

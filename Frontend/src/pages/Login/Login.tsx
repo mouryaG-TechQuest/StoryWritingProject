@@ -1,12 +1,11 @@
-// Login Page Component
-import { useState } from 'react';
+import React, { useState } from 'react';
 import './Login.css';
 
-export const Login = () => {
+export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic
     console.log('Login attempt:', { email, password });
