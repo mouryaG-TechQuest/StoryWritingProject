@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { AlertCircle, BookOpen, CheckCircle } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import authService from '../../api/auth.service.js';
+import FormInput from '../../components/common/FormInput';
+import Alert from '../../components/common/Alert';
+import { validateRegistrationForm, validateLoginForm, isValidPassword } from '../../utils/validation';
 
 interface AuthPageProps {
   onAuth: (user: { username: string; token: string }) => void;
@@ -23,6 +26,7 @@ const Auth = ({ onAuth }: AuthPageProps) => {
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showForgotUsername, setShowForgotUsername] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [authForm, setAuthForm] = useState<AuthFormData>({
     username: '',
     password: '',
@@ -38,23 +42,31 @@ const Auth = ({ onAuth }: AuthPageProps) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setErrors({});
     setLoading(true);
 
     try {
       if (authForm.isLogin) {
+        // Validate login
+        const validation = validateLoginForm(authForm.username, authForm.password);
+        if (!validation.isValid) {
+          setErrors(validation.errors);
+          setError('Please fix the errors below');
+          setLoading(false);
+          return;
+        }
+
         const res = await authService.login(authForm.username, authForm.password);
         if (!res || !res.token) throw new Error('Login failed');
         onAuth({ username: authForm.username, token: res.token });
       } else {
-        // Validate password confirmation
-        if (authForm.password !== authForm.confirmPassword) {
-          throw new Error('Passwords do not match');
-        }
-
-        // Validate password strength
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(authForm.password)) {
-          throw new Error('Password must be at least 8 characters and contain uppercase, lowercase, number, and special character');
+        // Validate registration
+        const validation = validateRegistrationForm(authForm);
+        if (!validation.isValid) {
+          setErrors(validation.errors);
+          setError('Please fix the errors below');
+          setLoading(false);
+          return;
         }
 
         const response = await authService.register(
@@ -81,7 +93,7 @@ const Auth = ({ onAuth }: AuthPageProps) => {
           isLogin: true
         });
         
-        // Switch to login after 3 seconds
+        // Switch to login after 5 seconds
         setTimeout(() => {
           setSuccess('');
           setAuthForm(prev => ({ ...prev, isLogin: true }));
@@ -164,17 +176,11 @@ const Auth = ({ onAuth }: AuthPageProps) => {
         </p>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex items-start">
-            <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-            <span className="text-sm">{error}</span>
-          </div>
+          <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 flex items-start">
-            <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-            <span className="text-sm">{success}</span>
-          </div>
+          <Alert type="success" message={success} onClose={() => setSuccess('')} className="mb-4" />
         )}
 
         {showForgotPassword ? (
@@ -183,13 +189,14 @@ const Auth = ({ onAuth }: AuthPageProps) => {
             <p className="text-sm text-gray-600 mb-4">
               Enter your email to receive a 5-digit reset code.
             </p>
-            <input
+            <FormInput
               type="email"
               placeholder="Email"
               value={authForm.email}
-              onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-              className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              onChange={(value) => setAuthForm({ ...authForm, email: value })}
               required
+              autoComplete="email"
+              className="mb-4"
             />
             <div className="flex gap-3">
               <button
@@ -213,13 +220,14 @@ const Auth = ({ onAuth }: AuthPageProps) => {
             <p className="text-sm text-gray-600 mb-4">
               Enter your email to receive your username.
             </p>
-            <input
+            <FormInput
               type="email"
               placeholder="Email"
               value={authForm.email}
-              onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-              className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              onChange={(value) => setAuthForm({ ...authForm, email: value })}
               required
+              autoComplete="email"
+              className="mb-4"
             />
             <div className="flex gap-3">
               <button
@@ -243,74 +251,77 @@ const Auth = ({ onAuth }: AuthPageProps) => {
               {!authForm.isLogin && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <input
+                    <FormInput
                       type="text"
                       placeholder="First Name *"
                       value={authForm.firstName}
-                      onChange={(e) => setAuthForm({ ...authForm, firstName: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      onChange={(value) => setAuthForm({ ...authForm, firstName: value })}
+                      error={errors.firstName}
                       required
+                      autoComplete="given-name"
                     />
-                    <input
+                    <FormInput
                       type="text"
                       placeholder="Last Name *"
                       value={authForm.lastName}
-                      onChange={(e) => setAuthForm({ ...authForm, lastName: e.target.value })}
-                      className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      onChange={(value) => setAuthForm({ ...authForm, lastName: value })}
+                      error={errors.lastName}
                       required
+                      autoComplete="family-name"
                     />
                   </div>
 
-                  <input
+                  <FormInput
                     type="email"
                     placeholder="Email *"
-                    autoComplete="email"
                     value={authForm.email}
-                    onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                    onChange={(value) => setAuthForm({ ...authForm, email: value })}
+                    error={errors.email}
                     required
+                    autoComplete="email"
                   />
 
-                  <input
+                  <FormInput
                     type="tel"
                     placeholder="Phone Number (optional)"
                     value={authForm.phoneNumber}
-                    onChange={(e) => setAuthForm({ ...authForm, phoneNumber: e.target.value })}
-                    className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                    onChange={(value) => setAuthForm({ ...authForm, phoneNumber: value })}
+                    error={errors.phoneNumber}
+                    autoComplete="tel"
                   />
                 </>
               )}
 
-              <input
+              <FormInput
                 type="text"
                 placeholder="Username *"
-                autoComplete="username"
                 value={authForm.username}
-                onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
-                className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                onChange={(value) => setAuthForm({ ...authForm, username: value })}
+                error={errors.username}
                 required
+                autoComplete="username"
               />
 
-              <input
+              <FormInput
                 type="password"
                 placeholder="Password *"
-                autoComplete={authForm.isLogin ? 'current-password' : 'new-password'}
                 value={authForm.password}
-                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                onChange={(value) => setAuthForm({ ...authForm, password: value })}
+                error={errors.password}
                 required
+                autoComplete={authForm.isLogin ? 'current-password' : 'new-password'}
               />
 
               {!authForm.isLogin && (
                 <>
-                  <input
+                  <FormInput
                     type="password"
                     placeholder="Confirm Password *"
-                    autoComplete="new-password"
                     value={authForm.confirmPassword}
-                    onChange={(e) => setAuthForm({ ...authForm, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                    onChange={(value) => setAuthForm({ ...authForm, confirmPassword: value })}
+                    error={errors.confirmPassword}
                     required
+                    autoComplete="new-password"
                   />
                   <p className="text-xs text-gray-500">
                     Password must be 8+ characters with uppercase, lowercase, number, and special character (@$!%*?&)

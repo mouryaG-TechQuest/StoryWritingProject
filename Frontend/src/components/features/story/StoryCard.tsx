@@ -1,5 +1,5 @@
 import { Edit, Trash2, ThumbsUp, Heart, Eye, EyeOff, MessageCircle, User, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import StoryCardTooltip from './StoryCardTooltip';
 
 interface Character {
@@ -51,7 +51,11 @@ interface StoryCardProps {
   storyNumber?: string; // Unique story number from backend
 }
 
-const StoryCard = ({ 
+/**
+ * Optimized Story Card Component
+ * Uses React.memo to prevent unnecessary re-renders for better performance with large lists
+ */
+const StoryCard = memo(({ 
   story, 
   isOwner, 
   onEdit, 
@@ -397,6 +401,8 @@ const StoryCard = ({
       </div>
     </>
   );
-};
+});
+
+StoryCard.displayName = 'StoryCard';
 
 export default StoryCard;
